@@ -3,11 +3,15 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class NPCDialogue : MonoBehaviour
+public class NPCDialogueScreenCenter : MonoBehaviour
 {
-    [Header("UI组件 - 必须赋值！")]
-    public Text textLabel;
-    public GameObject dialoguePanel; // 添加专门的对话面板
+    [Header("UI组件")]
+    public GameObject dialoguePanel;
+    public Text dialogueText;
+    
+    [Header("中央位置设置")]
+    public float verticalOffset = 100f;  // 从角色位置向上的偏移量
+    public bool followPlayer = true;     // 对话框是否跟随玩家
     
     [Header("对话文件")]
     public TextAsset dialogueFile;
@@ -18,222 +22,184 @@ public class NPCDialogue : MonoBehaviour
     
     private List<string> textList = new List<string>();
     private int currentIndex = 0;
-    private bool isPlayerInRange = false;
     private bool isDialogueActive = false;
-
-    void Awake()
+    private RectTransform panelRect;
+    private Camera mainCamera;
+    private Transform playerTransform;
+    
+    void Start()
     {
-        // 初始化时检查组件
-        InitializeComponents();
+        // 获取组件
+        if (dialoguePanel != null)
+        {
+            panelRect = dialoguePanel.GetComponent<RectTransform>();
+            SetupScreenCenterPosition();
+            dialoguePanel.SetActive(false);
+        }
         
-        // 加载对话文件
+        mainCamera = Camera.main;
+        playerTransform = GameObject.FindGameObjectWithTag("Player")?.transform;
+        
+        // 加载对话
         if (dialogueFile != null)
         {
-            GetTextFromFile(dialogueFile);
-        }
-        else
-        {
-            Debug.LogWarning($"NPC {gameObject.name} 没有设置对话文件！");
+            LoadDialogue();
         }
     }
     
-    void InitializeComponents()
+    void SetupScreenCenterPosition()
     {
-        // 如果未手动赋值，尝试自动查找
-        if (textLabel == null)
-        {
-            // 查找场景中的Text组件
-            textLabel = GameObject.Find("DialogueText")?.GetComponent<Text>();
-            if (textLabel == null)
-            {
-                Debug.LogError("找不到Text组件！请手动将Text对象拖拽到textLabel字段");
-            }
-        }
+        if (panelRect == null) return;
         
-        // 初始化隐藏对话面板
-        if (dialoguePanel != null)
-        {
-            dialoguePanel.SetActive(false);
-        }
-        else
-        {
-            // 如果textLabel有父对象，使用父对象作为面板
-            if (textLabel != null && textLabel.transform.parent != null)
-            {
-                dialoguePanel = textLabel.transform.parent.gameObject;
-                dialoguePanel.SetActive(false);
-            }
-        }
+        // 设置锚点为屏幕中心
+        panelRect.anchorMin = new Vector2(0.5f, 0.5f);
+        panelRect.anchorMax = new Vector2(0.5f, 0.5f);
+        panelRect.pivot = new Vector2(0.5f, 0.5f);
+        
+        // 初始位置在屏幕中心
+        panelRect.anchoredPosition = new Vector2(0, verticalOffset);
     }
-
+    
     void Update()
     {
-        // 检测玩家距离
-        CheckPlayerDistance();
-        
-        // 如果在对话中，处理对话逻辑
-        if (isDialogueActive)
-        {
-            HandleDialogueInput();
-        }
-    }
-
-    void CheckPlayerDistance()
-    {
-        GameObject player = GameObject.FindGameObjectWithTag("Player");
-        if (player == null) 
-        {
-            Debug.LogWarning("找不到Player对象！请确保有Tag为Player的游戏对象");
-            return;
-        }
-        
-        float distance = Vector3.Distance(transform.position, player.transform.position);
-        isPlayerInRange = distance <= interactionRange;
-        
-        // 玩家在范围内按R键开始对话
-        if (isPlayerInRange && Input.GetKeyDown(interactKey) && !isDialogueActive)
+        // 检测玩家交互
+        if (IsPlayerInRange() && Input.GetKeyDown(interactKey) && !isDialogueActive)
         {
             StartDialogue();
         }
         
-        // 玩家离开范围时结束对话
-        if (!isPlayerInRange && isDialogueActive)
+        // 如果在对话中
+        if (isDialogueActive)
         {
-            EndDialogue();
+            // 更新对话框位置（基于角色位置）
+            UpdateDialoguePosition();
+            
+            // 处理对话输入
+            if (Input.GetKeyDown(KeyCode.R))
+            {
+                NextLine();
+            }
+            
+            // 按ESC退出
+            if (Input.GetKeyDown(KeyCode.Escape))
+            {
+                EndDialogue();
+            }
+            
+            // 玩家离开范围时结束对话
+            if (!IsPlayerInRange())
+            {
+                EndDialogue();
+            }
         }
     }
-
-    void StartDialogue()
+    
+    void UpdateDialoguePosition()
     {
-        // 安全检查
-        if (textList.Count == 0)
+        if (panelRect == null || mainCamera == null) return;
+        
+        // 决定参考目标：跟随玩家或固定NPC
+        Transform referenceTarget = followPlayer ? playerTransform : transform;
+        if (referenceTarget == null) return;
+        
+        // 获取参考目标在屏幕上的位置
+        Vector3 screenPos = mainCamera.WorldToScreenPoint(referenceTarget.position);
+        
+        // 如果目标在屏幕外，使用默认位置
+        if (screenPos.z < 0)
         {
-            Debug.LogWarning("对话列表为空！请检查对话文件");
+            panelRect.anchoredPosition = new Vector2(0, verticalOffset);
             return;
         }
         
-        if (textLabel == null)
+        // 转换为Canvas坐标
+        Vector2 canvasPos;
+        if (RectTransformUtility.ScreenPointToLocalPointInRectangle(
+            panelRect.parent as RectTransform,
+            screenPos,
+            mainCamera,
+            out canvasPos))
         {
-            Debug.LogError("textLabel为空！无法显示对话");
+            // 在角色位置的基础上，向上偏移
+            // X轴保持屏幕中央，Y轴以角色位置为基准
+            panelRect.anchoredPosition = new Vector2(0, canvasPos.y + verticalOffset);
+        }
+    }
+    
+    bool IsPlayerInRange()
+    {
+        if (playerTransform == null) return false;
+        
+        float distance = Vector3.Distance(transform.position, playerTransform.position);
+        return distance <= interactionRange;
+    }
+    
+    void StartDialogue()
+    {
+        if (textList.Count == 0 || dialoguePanel == null || dialogueText == null)
+        {
+            Debug.LogWarning("无法开始对话：组件缺失");
             return;
         }
         
         isDialogueActive = true;
         currentIndex = 0;
         
-        // 激活对话面板
-        if (dialoguePanel != null)
-        {
-            dialoguePanel.SetActive(true);
-        }
-        else if (textLabel != null && textLabel.transform.parent != null)
-        {
-            textLabel.transform.parent.gameObject.SetActive(true);
-        }
+        // 显示对话框
+        dialoguePanel.SetActive(true);
+        
+        // 立即更新位置
+        UpdateDialoguePosition();
         
         // 显示第一句对话
-        textLabel.text = textList[currentIndex];
-        Debug.Log($"开始对话：{textList[currentIndex]}");
-        
+        dialogueText.text = textList[currentIndex];
         currentIndex++;
     }
-
-    void HandleDialogueInput()
+    
+    void NextLine()
     {
-        // 安全检查
-        if (textLabel == null || textList == null)
+        if (currentIndex >= textList.Count)
         {
-            Debug.LogError("textLabel 或 textList 为空！");
             EndDialogue();
             return;
         }
         
-        if (Input.GetKeyDown(KeyCode.R))
-        {
-            if (currentIndex >= textList.Count)
-            {
-                EndDialogue();
-                return;
-            }
-            
-            // 显示下一句对话
-            textLabel.text = textList[currentIndex];
-            Debug.Log($"下一句对话：{textList[currentIndex]}");
-            
-            currentIndex++;
-        }
-        
-        // 按ESC键可以随时退出
-        if (Input.GetKeyDown(KeyCode.Escape))
-        {
-            EndDialogue();
-        }
+        dialogueText.text = textList[currentIndex];
+        currentIndex++;
     }
-
+    
     void EndDialogue()
     {
         isDialogueActive = false;
         currentIndex = 0;
         
-        // 隐藏对话面板
         if (dialoguePanel != null)
         {
             dialoguePanel.SetActive(false);
         }
-        else if (textLabel != null && textLabel.transform.parent != null)
-        {
-            textLabel.transform.parent.gameObject.SetActive(false);
-        }
-        
-        Debug.Log("对话结束");
-    }
-
-    void GetTextFromFile(TextAsset file)
-    {
-        textList.Clear();
-        currentIndex = 0;
-
-        if (file != null)
-        {
-            var lineData = file.text.Split('\n');
-            Debug.Log($"从文件 {file.name} 读取到 {lineData.Length} 行");
-
-            foreach (var line in lineData)
-            {
-                // 跳过空行和注释行
-                string trimmedLine = line.Trim();
-                if (!string.IsNullOrEmpty(trimmedLine) && !trimmedLine.StartsWith("//"))
-                {
-                    textList.Add(trimmedLine);
-                }
-            }
-            
-            Debug.Log($"成功加载 {textList.Count} 句对话");
-        }
-        else
-        {
-            Debug.LogError("对话文件为空！");
-        }
     }
     
-    // 调试方法：在编辑器中测试对话
-    [ContextMenu("测试对话")]
-    void TestDialogue()
+    void LoadDialogue()
     {
-        if (Application.isPlaying)
+        textList.Clear();
+        
+        if (dialogueFile != null)
         {
-            StartDialogue();
-        }
-        else
-        {
-            Debug.Log("请在运行模式下测试对话");
+            string[] lines = dialogueFile.text.Split('\n');
+            foreach (string line in lines)
+            {
+                if (!string.IsNullOrWhiteSpace(line))
+                {
+                    textList.Add(line.Trim());
+                }
+            }
         }
     }
     
     // 可视化交互范围
     void OnDrawGizmosSelected()
     {
-        Gizmos.color = Color.yellow;
+        Gizmos.color = Color.green;
         Gizmos.DrawWireSphere(transform.position, interactionRange);
     }
 }
