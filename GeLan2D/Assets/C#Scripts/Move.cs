@@ -4,28 +4,50 @@ using UnityEngine;
 
 public class Move : MonoBehaviour
 {
-    public float speed = 5f;
+    public float speed = 3f;
     private Rigidbody2D rb;
     
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
+        
+        // 确保刚体设置正确
+        if (rb != null)
+        {
+            rb.gravityScale = 0;  // 无重力
+            rb.constraints = RigidbodyConstraints2D.FreezePositionY | RigidbodyConstraints2D.FreezeRotation; // 锁定Y轴移动和旋转
+            rb.collisionDetectionMode = CollisionDetectionMode2D.Discrete;
+            rb.sleepMode = RigidbodySleepMode2D.NeverSleep;
+        }
     }
     
     void Update()
     {
+        // 方向翻转
+        if (Input.GetKey(KeyCode.A))
+        {
+            transform.localScale = new Vector3(-1, 1, 1);
+        }
+        else if (Input.GetKey(KeyCode.D))
+        {
+            transform.localScale = new Vector3(1, 1, 1);
+        }
+    }
+    
+    void FixedUpdate()
+    {
         float moveX = 0;
+        
         if (Input.GetKey(KeyCode.A))
         {
             moveX = -1;
-            transform.localScale = new Vector3(-1, 1, 1);// 向左翻转
         }
         else if (Input.GetKey(KeyCode.D))
         {
             moveX = 1;
-            transform.localScale = new Vector3(1, 1, 1);// 向右翻转
         }
         
-        rb.velocity = new Vector2(moveX * speed, rb.velocity.y);
+        // 只设置X轴速度，Y轴保持为0
+        rb.velocity = new Vector2(moveX * speed, 0);
     }
 }
