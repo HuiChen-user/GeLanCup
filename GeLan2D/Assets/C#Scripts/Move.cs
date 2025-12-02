@@ -22,15 +22,17 @@ public class Move : MonoBehaviour
     }
     
     void Update()
-    {
-        // 方向翻转
-        if (Input.GetKey(KeyCode.A))
+    {   if(!enabled)return;//如果脚本被禁用不执行：
         {
-            transform.localScale = new Vector3(-1, 1, 1);
-        }
-        else if (Input.GetKey(KeyCode.D))
-        {
-            transform.localScale = new Vector3(1, 1, 1);
+            // 方向翻转
+            if (Input.GetKey(KeyCode.A))
+            {
+                transform.localScale = new Vector3(-1, 1, 1);
+            }
+            else if (Input.GetKey(KeyCode.D))
+            {
+                transform.localScale = new Vector3(1, 1, 1);
+            }
         }
     }
     
