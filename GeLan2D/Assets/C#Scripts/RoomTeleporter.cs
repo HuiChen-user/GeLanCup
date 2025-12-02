@@ -16,173 +16,188 @@ public class RoomTeleporter : MonoBehaviour
     public bool showDebugGizmos = true;
 
     private int currentDestinationIndex = 0;
-    private RoomCamera roomCamera; // 请确保你的摄像机脚本名为 RoomCamera
+    private RoomCamera roomCamera;
     private Move playerMovement;
+    private Rigidbody2D playerRigidbody; //缓存玩家刚体引用
     private bool isTransitioning = false;
 
     void Start()
+{
+    roomCamera = Camera.main.GetComponent<RoomCamera>();
+    playerMovement = GetComponent<Move>();
+    playerRigidbody = GetComponent<Rigidbody2D>();
+    
+    if (fadeOverlay == null)
     {
-        roomCamera = Camera.main.GetComponent<RoomCamera>();
-        playerMovement = GetComponent<Move>();
-        
-        if (fadeOverlay == null)
-        {
-            GameObject fadeObj = GameObject.Find("FadeOverlay");
-            if (fadeObj != null) fadeOverlay = fadeObj.GetComponent<Image>();
-        }
-        
-        if (fadeOverlay != null)
-        {
-            Color color = fadeOverlay.color;
-            color.a = 0f;
-            fadeOverlay.color = color;
-            fadeOverlay.raycastTarget = false;
-        }
+        GameObject fadeObj = GameObject.Find("FadeOverlay");
+        if (fadeObj != null) fadeOverlay = fadeObj.GetComponent<Image>();
+    }
+    
+    if (fadeOverlay != null)
+    {
+        Color color = fadeOverlay.color;
+        color.a = 0f;
+        fadeOverlay.color = color;
+        fadeOverlay.raycastTarget = false;
+    }
 
-        if (destinations.Length > 0)
+    //同步初始化位置，移除协程延迟
+    if (destinations.Length > 0)
+    {
+        InitializePlayerAtStart();
+    }
+}
+
+//同步初始化方法
+private void InitializePlayerAtStart()
+{
+    // 1. 获取第一个房间的配置
+    RoomDestination firstRoom = destinations[0];
+    
+    // 2. 立即设置玩家位置到出生点
+    transform.position = firstRoom.playerSpawnPosition;
+    Debug.Log($"玩家初始位置已同步设置到房间：{firstRoom.roomName} 的出生点 {firstRoom.playerSpawnPosition}");
+    
+    // 3. 立即设置摄像机边界
+    if (roomCamera != null)
+    {
+        roomCamera.currentRoomBounds = firstRoom.roomBounds;
+        
+        // 4. 立即强制计算并设置摄像机位置
+        if (Camera.main != null)
         {
-            StartCoroutine(InitialTeleport());
+            Vector3 immediateCameraPos = CalculateCameraPosition(firstRoom.playerSpawnPosition, firstRoom.roomBounds);
+            Camera.main.transform.position = immediateCameraPos;
+            Debug.Log($"摄像机初始位置已同步设置到：{immediateCameraPos}");
         }
     }
+    
+    //确保刚体状态正确
+    if (playerRigidbody != null)
+    {
+        playerRigidbody.velocity = Vector2.zero;
+        // 根据你的移动方式决定是否设为Kinematic
+        // playerRigidbody.bodyType = RigidbodyType2D.Kinematic;
+    }
+}
 
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.E) && !isTransitioning)
-        {
-            TeleportToNextRoomWithFade();
-        }
+        // Update方法已清空，确保没有全局E键检测
+        // 传送仅由 DoorTrigger 调用
     }
 
-    IEnumerator InitialTeleport()
+//核心公开方法：供 DoorTrigger 调用
+public void TeleportToSpecificDoor(int fromRoomIndex, int fromDoorIndex)
+{
+    if (isTransitioning) return;
+    if (destinations.Length == 0) return;
+
+    // 1. 安全检查
+    if (fromRoomIndex < 0 || fromRoomIndex >= destinations.Length)
     {
-        yield return new WaitForEndOfFrame();
-        TeleportToDestination(0, false);
-        Debug.Log("初始位置已设置到房间：" + destinations[0].roomName);
+        Debug.LogError($"传送错误：房间索引 {fromRoomIndex} 不存在！");
+        return;
     }
-
-    void TeleportToNextRoomWithFade()
+    RoomDestination currentRoom = destinations[fromRoomIndex];
+    if (fromDoorIndex < 0 || fromDoorIndex >= currentRoom.doorConnections.Count)
     {
-        if (destinations.Length == 0) return;
-        currentDestinationIndex = (currentDestinationIndex + 1) % destinations.Length;
-        StartCoroutine(TransitionRoutine(currentDestinationIndex));
+        Debug.LogError($"传送错误：房间 '{currentRoom.roomName}' 不存在索引为 {fromDoorIndex} 的门连接！");
+        return;
     }
 
-    // ===== 核心协程：严格控制执行顺序 =====
-    IEnumerator TransitionRoutine(int destinationIndex)
+    // 2. 获取连接信息
+    DoorConnection usedDoor = currentRoom.doorConnections[fromDoorIndex];
+    int targetRoomIndex = usedDoor.targetRoomIndex;
+    Vector2 targetDoorPos = usedDoor.targetDoorPosition;
+
+    if (targetRoomIndex < 0 || targetRoomIndex >= destinations.Length)
     {
-        if (isTransitioning) yield break;
-        isTransitioning = true;
-
-        // 1. 立即禁用玩家移动
-        if (playerMovement != null) playerMovement.enabled = false;
-
-        // 2. 屏幕淡出至全黑
-        if (fadeOverlay != null)
-        {
-            yield return StartCoroutine(FadeScreen(0f, 1f, fadeDuration));
-            Debug.Log("屏幕已全黑，开始执行传送与摄像机定位");
-        }
-        else
-        {
-            yield return new WaitForSeconds(fadeDuration);
-        }
-
-        // 3. 执行传送（这包括传送玩家和强制设置摄像机位置）
-        TeleportToDestination(destinationIndex, false);
-
-        // 4. 可选但推荐：确保摄像机在新位置稳定（非常重要！）
-        // 这一帧让Unity完成所有变换和物理更新，确保摄像机位置被正确应用。
-        yield return null; // 等待一帧
-
-        // 5. 屏幕从全黑开始淡入（此时摄像机已绝对就位）
-        if (fadeOverlay != null)
-        {
-            yield return StartCoroutine(FadeScreen(1f, 0f, fadeDuration));
-        }
-        else
-        {
-            yield return new WaitForSeconds(fadeDuration);
-        }
-
-        // 6. 完全亮起后恢复玩家移动
-        if (playerMovement != null) playerMovement.enabled = true;
-
-        isTransitioning = false;
-        Debug.Log("传送完成！角色与摄像机均已就位。");
+        Debug.LogError($"传送错误：目标房间索引 {targetRoomIndex} 不存在！");
+        return;
     }
+    RoomDestination targetRoom = destinations[targetRoomIndex];
 
-    // ===== 修改关键：传送逻辑，包含强制摄像机定位 =====
-    void TeleportToDestination(int index, bool withEffects = true)
+    Debug.Log($"从 '{currentRoom.roomName}' 传送到 '{targetRoom.roomName}' 的门口");
+
+    // 3. 启动唯一的核心传送协程
+    StartCoroutine(CoreTeleportRoutine(targetRoomIndex, targetDoorPos, targetRoom.roomBounds));
+}
+
+//唯一的、统一的核心传送协程
+private IEnumerator CoreTeleportRoutine(int targetRoomIndex, Vector2 targetPosition, Rect targetRoomBounds)
+{
+    //防止重复触发
+    if (isTransitioning) yield break;
+    isTransitioning = true;
+    Debug.Log("传送启动：开始冻结与过渡");
+
+    //第1步：立即彻底冻结物理运动 (最关键！)
+    if (playerRigidbody != null)
     {
-        if (index < 0 || index >= destinations.Length)
-        {
-            Debug.LogWarning($"传送索引 {index} 无效！");
-            return;
-        }
-
-        RoomDestination dest = destinations[index];
-        Debug.Log($"正在传送至: {dest.roomName}");
-
-        // 1. 更新摄像机脚本的房间边界（必须先做！）
-        if (roomCamera != null)
-        {
-            roomCamera.currentRoomBounds = dest.roomBounds;
-            Debug.Log($"摄像机边界已更新为: {dest.roomBounds}");
-        }
-
-        // 2. 传送玩家到目标位置
-        transform.position = dest.playerSpawnPosition;
-        Debug.Log($"玩家已传送到: {dest.playerSpawnPosition}");
-
-        // 3. === 核心修复：强制计算并设置摄像机位置 ===
-        if (roomCamera != null && Camera.main != null)
-        {
-            // 3.1 根据玩家新位置和房间新边界，立即计算出摄像机应有的位置
-            Vector3 desiredCamPos = CalculateCameraPosition(dest.playerSpawnPosition, dest.roomBounds);
-            
-            // 3.2 直接将主摄像机的位置设置过去，绕开平滑跟随
-            Camera.main.transform.position = desiredCamPos;
-            
-            // 3.3 （可选但推荐）同时更新RoomCamera脚本内部的缓存位置，防止它下一帧往回跳
-            // 如果你的RoomCamera脚本用某个变量（如targetPosition）记录目标，也需要更新它。
-            // 例如，如果它有public Vector3 targetPosition，可以在这里设置：
-            // roomCamera.targetPosition = desiredCamPos;
-            
-            Debug.Log($"摄像机已强制设置到: {desiredCamPos}");
-        }
+        playerRigidbody.velocity = Vector2.zero; // 速度归零
+        playerRigidbody.angularVelocity = 0f;
+        playerRigidbody.bodyType = RigidbodyType2D.Kinematic; // 设为运动学，无视物理
     }
-
-    // ===== 新增：计算摄像机在房间边界内的合法位置 =====
-    // 这个逻辑应该与你RoomCamera脚本中的限制逻辑完全一致
-    Vector3 CalculateCameraPosition(Vector2 playerPos, Rect roomBounds)
+    if (playerMovement != null)
     {
-        if (roomCamera == null || Camera.main == null)
-        {
-            return new Vector3(playerPos.x, playerPos.y, Camera.main.transform.position.z);
-        }
-
-        Camera cam = Camera.main;
-        float cameraHeight = cam.orthographicSize;
-        float cameraWidth = cameraHeight * cam.aspect;
-
-        // 计算摄像机不能超出的边界（与RoomCamera脚本中的逻辑匹配）
-        float minX = roomBounds.xMin + cameraWidth;
-        float maxX = roomBounds.xMax - cameraWidth;
-        float minY = roomBounds.yMin + cameraHeight;
-        float maxY = roomBounds.yMax - cameraHeight;
-
-        // 如果房间太小，摄像机居中
-        if (maxX < minX) minX = maxX = (roomBounds.xMin + roomBounds.xMax) / 2f;
-        if (maxY < minY) minY = maxY = (roomBounds.yMin + roomBounds.yMax) / 2f;
-
-        // 将玩家位置作为期望的摄像机中心，然后进行钳制
-        float desiredX = Mathf.Clamp(playerPos.x, minX, maxX);
-        float desiredY = Mathf.Clamp(playerPos.y, minY, maxY);
-
-        // 保持摄像机原有的Z轴位置（通常是-10）
-        return new Vector3(desiredX, desiredY, cam.transform.position.z);
+        playerMovement.enabled = false; // 禁用移动脚本
     }
 
+    //第2步：屏幕淡出至全黑 ===
+    if (fadeOverlay != null)
+    {
+        yield return StartCoroutine(FadeScreen(0f, 1f, fadeDuration));
+        Debug.Log("屏幕已全黑，执行瞬间传送");
+    }
+    else
+    {
+        yield return new WaitForSeconds(fadeDuration);
+    }
+
+    //第3步：黑屏瞬间完成传送与摄像机跳转
+    // 3.1 更新摄像机边界
+    if (roomCamera != null)
+    {
+        roomCamera.currentRoomBounds = targetRoomBounds;
+    }
+    // 3.2 传送玩家
+    transform.position = targetPosition;
+    // 3.3 强制摄像机跳转
+    if (roomCamera != null && Camera.main != null)
+    {
+        Vector3 desiredCamPos = CalculateCameraPosition(targetPosition, targetRoomBounds);
+        Camera.main.transform.position = desiredCamPos;
+    }
+    yield return null; // 确保一帧完成
+
+    //第4步：屏幕从全黑开始淡入
+    if (fadeOverlay != null)
+    {
+        yield return StartCoroutine(FadeScreen(1f, 0f, fadeDuration));
+    }
+    else
+    {
+        yield return new WaitForSeconds(fadeDuration);
+    }
+
+    //第5步：恢复控制与物理
+    if (playerRigidbody != null)
+    {
+        // 根据你的游戏需要，决定是改回Dynamic还是保持Kinematic
+        // 如果你的移动脚本是通过Transform直接移动，保持Kinematic即可
+        // playerRigidbody.bodyType = RigidbodyType2D.Dynamic;
+    }
+    if (playerMovement != null)
+    {
+        playerMovement.enabled = true;
+    }
+
+    isTransitioning = false;
+    Debug.Log($"传送完成！角色已在：{destinations[targetRoomIndex].roomName}");
+}
+
+//辅助方法
     IEnumerator FadeScreen(float startAlpha, float endAlpha, float duration)
     {
         if (fadeOverlay == null) yield break;
@@ -199,9 +214,33 @@ public class RoomTeleporter : MonoBehaviour
         fadeOverlay.color = color;
     }
 
+    Vector3 CalculateCameraPosition(Vector2 playerPos, Rect roomBounds)
+    {
+        if (roomCamera == null || Camera.main == null)
+        {
+            return new Vector3(playerPos.x, playerPos.y, Camera.main.transform.position.z);
+        }
+
+        Camera cam = Camera.main;
+        float cameraHeight = cam.orthographicSize;
+        float cameraWidth = cameraHeight * cam.aspect;
+
+        float minX = roomBounds.xMin + cameraWidth;
+        float maxX = roomBounds.xMax - cameraWidth;
+        float minY = roomBounds.yMin + cameraHeight;
+        float maxY = roomBounds.yMax - cameraHeight;
+
+        if (maxX < minX) minX = maxX = (roomBounds.xMin + roomBounds.xMax) / 2f;
+        if (maxY < minY) minY = maxY = (roomBounds.yMin + roomBounds.yMax) / 2f;
+
+        float desiredX = Mathf.Clamp(playerPos.x, minX, maxX);
+        float desiredY = Mathf.Clamp(playerPos.y, minY, maxY);
+
+        return new Vector3(desiredX, desiredY, cam.transform.position.z);
+    }
+
     void OnDrawGizmos()
     {
-        // ... (你原来的Gizmos绘制代码，保持不变)
         if (!showDebugGizmos || destinations == null) return;
         for (int i = 0; i < destinations.Length; i++)
         {
@@ -212,16 +251,28 @@ public class RoomTeleporter : MonoBehaviour
             Vector3 center = new Vector3(dest.roomBounds.center.x, dest.roomBounds.center.y, 0);
             Vector3 size = new Vector3(dest.roomBounds.width, dest.roomBounds.height, 0.1f);
             Gizmos.DrawWireCube(center, size);
-            #if UNITY_EDITOR
+#if UNITY_EDITOR
             UnityEditor.Handles.Label(dest.playerSpawnPosition + Vector2.up * 0.6f, $"[{i}] {dest.roomName}");
-            #endif
+#endif
         }
     }
 }
+
+//数据类定义
 [System.Serializable]
 public class RoomDestination
 {
-    public string roomName="新房间";
-    public Rect roomBounds=new Rect(0,0,16,9);
-    public Vector2 playerSpawnPosition=Vector2.zero;
+    public string roomName = "新房间";
+    public Rect roomBounds = new Rect(0, 0, 16, 9);
+    public Vector2 playerSpawnPosition = Vector2.zero;
+    public List<DoorConnection> doorConnections = new List<DoorConnection>();
+}
+
+[System.Serializable]
+public class DoorConnection
+{
+    public string connectionName = "房门";
+    public Vector2 doorPosition;
+    public int targetRoomIndex;
+    public Vector2 targetDoorPosition;
 }
