@@ -75,6 +75,53 @@ public class InventoryManager : MonoBehaviour
         }
     }
     
+    //第二步：新增的代码从这里开始
+    
+    // 根据物品ID移除物品
+    public void RemoveItem(int itemID)
+    {
+        // 查找物品
+        for (int i = 0; i < inventoryItems.Count; i++)
+        {
+            if (inventoryItems[i].itemID == itemID)
+            {
+                // 从列表中移除
+                inventoryItems.RemoveAt(i);
+                
+                // 销毁对应的UI物体
+                if (i < itemSlots.Count)
+                {
+                    Destroy(itemSlots[i]);
+                    itemSlots.RemoveAt(i);
+                }
+                
+                // 重新排列剩余物品
+                RearrangeItems();
+                
+                Debug.Log($"移除了物品: {itemID}");
+                return;
+            }
+        }
+        
+        Debug.LogWarning($"没有找到物品ID: {itemID}");
+    }
+    
+    // 重新排列物品槽位置
+    void RearrangeItems()
+    {
+        for (int i = 0; i < itemSlots.Count; i++)
+        {
+            RectTransform slotRect = itemSlots[i].GetComponent<RectTransform>();
+            if (slotRect != null)
+            {
+                float yPosition = -slotSpacing * i;
+                slotRect.anchoredPosition = new Vector2(0, yPosition);
+            }
+        }
+    }
+    
+    //新增的代码到这里结束
+    
     // 检查是否有特定物品
     public bool HasItem(int itemID)
     {
@@ -90,5 +137,11 @@ public class InventoryManager : MonoBehaviour
     public int GetItemCount()
     {
         return inventoryItems.Count;
+    }
+    
+    // 可选：按键使用物品功能（你可以稍后添加）
+    void Update()
+    {
+        // 这里可以添加按数字键使用物品的逻辑
     }
 }

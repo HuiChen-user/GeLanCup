@@ -787,6 +787,11 @@ MonoBehaviour:
   customHintSprite: {fileID: 0}
   linkedRoomIndex: 0
   doorConnectionIndex: 0
+  requiresKey: 1
+  requiredKeyID: 1001
+  lockedHintSprite: {fileID: 21300000, guid: 7e01cb044e8917741ad44402f6aab498, type: 3}
+  isLocked: 1
+  lockedHintDuration: 1.5
 --- !u!61 &534729081
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -3645,6 +3650,11 @@ MonoBehaviour:
   customHintSprite: {fileID: 0}
   linkedRoomIndex: 1
   doorConnectionIndex: 0
+  requiresKey: 0
+  requiredKeyID: 1001
+  lockedHintSprite: {fileID: 0}
+  isLocked: 0
+  lockedHintDuration: 1.5
 --- !u!61 &1216333570
 BoxCollider2D:
   m_ObjectHideFlags: 0
