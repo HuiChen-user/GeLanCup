@@ -3270,7 +3270,8 @@ MonoBehaviour:
   successPopup: {fileID: 1655052700}
   successMessageText: {fileID: 893272258}
   popupDisplayTime: 2
-  verticalOffset: 500
+  popupVerticalOffset: 500
+  panelVerticalOffset: 500
   followPlayer: 1
   doorToUnlock: {fileID: 0}
   useTestMode: 0

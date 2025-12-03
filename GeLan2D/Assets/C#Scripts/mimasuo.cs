@@ -7,8 +7,8 @@ public class PlayerCenteredUnlockSystem_Testable : MonoBehaviour
 {
     [Header("基础设置")]
     public string password = "1234";
-    public KeyCode interactKey = KeyCode.R;  // 打开面板键
-    public KeyCode submitKey = KeyCode.Return; // ✅ 新增：自定义提交键
+    public KeyCode interactKey = KeyCode.R;      // 打开面板键
+    public KeyCode submitKey = KeyCode.Return;   // 提交密码键
     public float interactionRange = 2f;
     
     [Header("奖励物品")]
@@ -24,15 +24,16 @@ public class PlayerCenteredUnlockSystem_Testable : MonoBehaviour
     public GameObject unlockPanel;
     public Text messageText;
     public InputField passwordInput;
-    public Button submitButton; // ✅ 新增：提交按钮引用
+    public Button submitButton; // 可选：如果需要鼠标点击提交
     
     [Header("提示设置")]
-    public GameObject successPopup; // ✅ 新增：成功提示弹窗
-    public Text successMessageText; // ✅ 新增：成功消息文本
-    public float popupDisplayTime = 2f; // ✅ 新增：弹窗显示时间
+    public GameObject successPopup;              // 成功提示弹窗
+    public Text successMessageText;              // 成功消息文本
+    public float popupDisplayTime = 2f;          // 弹窗显示时间
+    public float popupVerticalOffset = 150f;     // 弹窗垂直偏移
     
     [Header("位置设置")]
-    public float verticalOffset = 100f;
+    public float panelVerticalOffset = 100f;     // 输入面板垂直偏移
     public bool followPlayer = true;
     
     [Header("门解锁")]
@@ -45,9 +46,10 @@ public class PlayerCenteredUnlockSystem_Testable : MonoBehaviour
     // 临时物品存储（用于测试）
     private static Dictionary<string, int> testInventory = new Dictionary<string, int>();
     
-    private bool isUnlocked = false; // ✅ 重要：已解锁状态
+    private bool isUnlocked = false;
     private Transform playerTransform;
     private RectTransform panelRect;
+    private RectTransform popupRect;
     private Camera mainCamera;
     
     void Start()
@@ -55,60 +57,72 @@ public class PlayerCenteredUnlockSystem_Testable : MonoBehaviour
         playerTransform = GameObject.FindGameObjectWithTag("Player")?.transform;
         mainCamera = Camera.main;
         
+        // 设置输入框字符限制
         if (passwordInput != null)
         {
             passwordInput.characterLimit = password.Length;
+            // 监听Enter键提交
+            passwordInput.onEndEdit.AddListener(OnPasswordInputEndEdit);
         }
         
-        // ✅ 初始化UI状态
+        // 初始化输入面板
         if (unlockPanel != null)
         {
             unlockPanel.SetActive(false);
             panelRect = unlockPanel.GetComponent<RectTransform>();
             if (panelRect != null)
             {
-                panelRect.anchorMin = new Vector2(0.5f, 0.5f);
-                panelRect.anchorMax = new Vector2(0.5f, 0.5f);
-                panelRect.pivot = new Vector2(0.5f, 0.5f);
+                SetupRectTransform(panelRect);
             }
         }
         
-        // ✅ 初始化成功弹窗
+        // 初始化成功弹窗
         if (successPopup != null)
         {
             successPopup.SetActive(false);
+            popupRect = successPopup.GetComponent<RectTransform>();
+            if (popupRect != null)
+            {
+                SetupRectTransform(popupRect);
+            }
         }
         
-        // ✅ 设置提交按钮事件
+        // 设置提交按钮事件（如果提供了按钮）
         if (submitButton != null)
         {
-            submitButton.onClick.RemoveAllListeners(); // 清除旧事件
+            submitButton.onClick.RemoveAllListeners();
             submitButton.onClick.AddListener(CheckPassword);
         }
         
+        // 自动查找背包管理器
         if (inventoryManager == null)
         {
             inventoryManager = FindObjectOfType<InventoryManager>();
+        }
+        
+        // 验证ID格式
+        if (!IsNumeric(rewardItemID) && showDebugLogs)
+        {
+            Debug.LogWarning($"rewardItemID '{rewardItemID}' 不是纯数字，真实模式下可能出错！");
         }
         
         if (showDebugLogs)
         {
             Debug.Log("密码系统初始化完成");
             Debug.Log($"正确密码: {password}");
-            Debug.Log($"提交按键: {submitKey}");
+            Debug.Log($"交互键: {interactKey}, 提交键: {submitKey}");
+            Debug.Log($"模式: {(useTestMode ? "测试模式" : "真实模式")}");
         }
     }
     
     void Update()
     {
-        // ✅ 重要：已解锁的物体跳过所有交互
         if (isUnlocked) return;
         
         // 检测玩家是否在交互范围内
         if (playerTransform != null &&
             Vector3.Distance(transform.position, playerTransform.position) <= interactionRange)
         {
-            // 按R键打开面板
             if (Input.GetKeyDown(interactKey))
             {
                 ShowUnlockPanel();
@@ -118,7 +132,7 @@ public class PlayerCenteredUnlockSystem_Testable : MonoBehaviour
         // 面板打开时的键盘控制
         if (unlockPanel != null && unlockPanel.activeSelf)
         {
-            // ✅ 按自定义提交键提交密码
+            // 按自定义提交键提交密码
             if (Input.GetKeyDown(submitKey))
             {
                 CheckPassword();
@@ -131,10 +145,16 @@ public class PlayerCenteredUnlockSystem_Testable : MonoBehaviour
             }
         }
         
-        // 面板位置跟随
+        // 更新输入面板位置
         if (unlockPanel != null && unlockPanel.activeSelf && followPlayer && panelRect != null && mainCamera != null)
         {
-            UpdatePanelPosition();
+            UpdateUIPosition(panelRect, panelVerticalOffset);
+        }
+        
+        // 更新成功弹窗位置
+        if (successPopup != null && successPopup.activeSelf && followPlayer && popupRect != null && mainCamera != null)
+        {
+            UpdateUIPosition(popupRect, popupVerticalOffset);
         }
         
         // 测试快捷键
@@ -144,29 +164,40 @@ public class PlayerCenteredUnlockSystem_Testable : MonoBehaviour
         }
     }
     
-    void UpdatePanelPosition()
+    // 设置RectTransform基础属性
+    void SetupRectTransform(RectTransform rectTransform)
+    {
+        rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+        rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+        rectTransform.pivot = new Vector2(0.5f, 0.5f);
+    }
+    
+    // 更新UI位置（通用方法）
+    void UpdateUIPosition(RectTransform uiRect, float verticalOffset)
     {
         if (playerTransform == null || mainCamera == null) return;
         
         Vector3 playerHeadPos = playerTransform.position + Vector3.up * 1.5f;
         Vector3 screenPos = mainCamera.WorldToScreenPoint(playerHeadPos);
+        
+        // 如果玩家在屏幕后方，取反坐标
         if (screenPos.z < 0) screenPos *= -1;
         
         Vector2 canvasPos;
         if (RectTransformUtility.ScreenPointToLocalPointInRectangle(
-            panelRect.parent as RectTransform,
+            uiRect.parent as RectTransform,
             screenPos,
             mainCamera,
             out canvasPos))
         {
-            panelRect.anchoredPosition = new Vector2(0, canvasPos.y + verticalOffset);
+            uiRect.anchoredPosition = new Vector2(0, canvasPos.y + verticalOffset);
         }
     }
     
-    // ✅ 打开解锁面板
+    // 打开解锁面板
     void ShowUnlockPanel()
     {
-        if (isUnlocked) // ✅ 已解锁的物体不能打开面板
+        if (isUnlocked)
         {
             if (messageText != null)
             {
@@ -182,7 +213,7 @@ public class PlayerCenteredUnlockSystem_Testable : MonoBehaviour
         
         if (panelRect != null && mainCamera != null)
         {
-            UpdatePanelPosition();
+            UpdateUIPosition(panelRect, panelVerticalOffset);
         }
         
         if (passwordInput != null)
@@ -204,7 +235,7 @@ public class PlayerCenteredUnlockSystem_Testable : MonoBehaviour
         }
     }
     
-    // ✅ 关闭解锁面板
+    // 关闭解锁面板
     void CloseUnlockPanel()
     {
         if (unlockPanel != null)
@@ -213,7 +244,17 @@ public class PlayerCenteredUnlockSystem_Testable : MonoBehaviour
         }
     }
     
-    // ✅ 检查密码（按钮和键盘都会调用）
+    // 输入框结束编辑监听（处理Enter键提交）
+    void OnPasswordInputEndEdit(string text)
+    {
+        // 只有当用户按Enter提交时才处理，点击其他地方不处理
+        if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
+        {
+            CheckPassword();
+        }
+    }
+    
+    // 检查密码（按钮和键盘都会调用）
     public void CheckPassword()
     {
         if (passwordInput == null) return;
@@ -230,7 +271,7 @@ public class PlayerCenteredUnlockSystem_Testable : MonoBehaviour
         }
     }
     
-    // ✅ 密码错误处理
+    // 密码错误处理
     void OnPasswordError()
     {
         if (messageText != null)
@@ -250,20 +291,17 @@ public class PlayerCenteredUnlockSystem_Testable : MonoBehaviour
         {
             Debug.Log("密码错误");
         }
-        
-        // 可选：添加错误音效或震动
     }
     
-    // ✅ 解锁成功处理
+    // 解锁成功处理
     void OnUnlockSuccess()
     {
-        // 标记为已解锁
         isUnlocked = true;
         
         // 关闭输入面板
         CloseUnlockPanel();
         
-        // ✅ 显示成功弹窗
+        // 显示成功弹窗
         ShowSuccessPopup($"解开了！获得 {rewardItemName} ×{rewardAmount}");
         
         // 给予玩家物品
@@ -299,7 +337,7 @@ public class PlayerCenteredUnlockSystem_Testable : MonoBehaviour
         }
     }
     
-    // ✅ 新增：显示成功弹窗
+    // 显示成功弹窗
     void ShowSuccessPopup(string message)
     {
         if (successPopup != null)
@@ -311,16 +349,16 @@ public class PlayerCenteredUnlockSystem_Testable : MonoBehaviour
                 successMessageText.color = Color.green;
             }
             
+            // 确保弹窗位置正确
+            if (popupRect != null && mainCamera != null && playerTransform != null)
+            {
+                UpdateUIPosition(popupRect, popupVerticalOffset);
+            }
+            
             // 显示弹窗
             successPopup.SetActive(true);
             
-            // ✅ 弹窗跟随玩家（如果需要）
-            if (followPlayer)
-            {
-                StartCoroutine(UpdatePopupPosition());
-            }
-            
-            // ✅ 自动关闭弹窗
+            // 自动关闭弹窗
             StartCoroutine(HidePopupAfterDelay(popupDisplayTime));
         }
         else
@@ -340,38 +378,7 @@ public class PlayerCenteredUnlockSystem_Testable : MonoBehaviour
         }
     }
     
-    // ✅ 弹窗位置更新协程
-    IEnumerator UpdatePopupPosition()
-    {
-        if (successPopup == null || !followPlayer) yield break;
-        
-        RectTransform popupRect = successPopup.GetComponent<RectTransform>();
-        if (popupRect == null || mainCamera == null) yield break;
-        
-        while (successPopup.activeSelf)
-        {
-            if (playerTransform != null)
-            {
-                Vector3 playerHeadPos = playerTransform.position + Vector3.up * 1.5f;
-                Vector3 screenPos = mainCamera.WorldToScreenPoint(playerHeadPos);
-                if (screenPos.z > 0)
-                {
-                    Vector2 canvasPos;
-                    if (RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                        popupRect.parent as RectTransform,
-                        screenPos,
-                        mainCamera,
-                        out canvasPos))
-                    {
-                        popupRect.anchoredPosition = new Vector2(0, canvasPos.y + verticalOffset + 150f);
-                    }
-                }
-            }
-            yield return null;
-        }
-    }
-    
-    // ✅ 自动隐藏弹窗
+    // 自动隐藏弹窗
     IEnumerator HidePopupAfterDelay(float delay)
     {
         yield return new WaitForSeconds(delay);
@@ -382,7 +389,7 @@ public class PlayerCenteredUnlockSystem_Testable : MonoBehaviour
         }
     }
     
-    // ✅ 清除消息文本
+    // 清除消息文本
     IEnumerator ClearMessageAfterDelay(float delay)
     {
         yield return new WaitForSeconds(delay);
@@ -442,6 +449,7 @@ public class PlayerCenteredUnlockSystem_Testable : MonoBehaviour
         }
         else
         {
+            Debug.LogWarning("背包系统未找到，使用测试模式");
             GiveRewardToPlayer_Test();
         }
     }
@@ -463,13 +471,28 @@ public class PlayerCenteredUnlockSystem_Testable : MonoBehaviour
         Debug.Log(inventoryText);
     }
     
+    // 检查字符串是否为纯数字
+    bool IsNumeric(string str)
+    {
+        foreach (char c in str)
+        {
+            if (!char.IsDigit(c))
+                return false;
+        }
+        return true;
+    }
+    
     // ========== 调试工具 ==========
     [ContextMenu("测试解锁")]
     void TestUnlock()
     {
         if (Application.isPlaying && !isUnlocked)
         {
-            OnUnlockSuccess();
+            if (passwordInput != null)
+            {
+                passwordInput.text = password;
+                CheckPassword();
+            }
         }
     }
     
@@ -511,7 +534,7 @@ public class PlayerCenteredUnlockSystem_Testable : MonoBehaviour
             
             GUI.Label(new Rect(10, 30, 400, 100), $"状态: {(isUnlocked ? "已解锁" : "未解锁")}", style);
             GUI.Label(new Rect(10, 50, 400, 100), "按P键查看背包详情", style);
-            GUI.Label(new Rect(10, 70, 400, 100), $"提交键: {submitKey}", style);
+            GUI.Label(new Rect(10, 70, 400, 100), $"交互键: {interactKey}, 提交键: {submitKey}", style);
         }
     }
 }
