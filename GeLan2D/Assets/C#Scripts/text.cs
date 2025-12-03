@@ -26,6 +26,7 @@ public class NPCDialogueScreenCenter : MonoBehaviour
     private RectTransform panelRect;
     private Camera mainCamera;
     private Transform playerTransform;
+    private bool wasPlayerInRange =false;//记录上一帧玩家是否在交互范围内
     
     void Start()
     {
@@ -61,7 +62,32 @@ public class NPCDialogueScreenCenter : MonoBehaviour
     }
     
     void Update()
-    {
+    {   
+        bool isInRangeNow = IsPlayerInRange(); // 计算当前是否在范围内,如果状态发生变化（进入或离开），且当前不在对话中
+        if (isInRangeNow != wasPlayerInRange && !isDialogueActive)
+        {
+            if (isInRangeNow)
+            {
+                // 玩家进入范围：显示提示
+                if (InteractionHintManager.Instance != null)
+                {
+                    InteractionHintManager.Instance.ShowHint();
+                    Debug.Log("NPC: 玩家进入范围，显示感叹号");
+                }
+            }
+            else
+            {
+                // 玩家离开范围：隐藏提示
+                if (InteractionHintManager.Instance != null)
+                {
+                    InteractionHintManager.Instance.HideHint();
+                    Debug.Log("NPC: 玩家离开范围，隐藏感叹号");
+                }
+            }
+        }
+    // 更新上一帧的状态记录
+    wasPlayerInRange = isInRangeNow;
+    //新增结束
         // 检测玩家交互
         if (IsPlayerInRange() && Input.GetKeyDown(interactKey) && !isDialogueActive)
         {
@@ -144,6 +170,14 @@ public class NPCDialogueScreenCenter : MonoBehaviour
         
         isDialogueActive = true;
         currentIndex = 0;
+
+        //新增：开始对话时，立即隐藏交互提示
+        if (InteractionHintManager.Instance != null)
+        {
+            InteractionHintManager.Instance.HideHint();
+            Debug.Log("NPC: 开始对话，隐藏感叹号");
+        }
+        //新增结束
         
         // 显示对话框
         dialoguePanel.SetActive(true);
@@ -172,6 +206,14 @@ public class NPCDialogueScreenCenter : MonoBehaviour
     {
         isDialogueActive = false;
         currentIndex = 0;
+
+        //新增：对话结束，如果玩家还在范围内，则重新显示提示
+        if (IsPlayerInRange() && InteractionHintManager.Instance != null)
+        {
+            InteractionHintManager.Instance.ShowHint();
+            Debug.Log("NPC: 对话结束，玩家仍在范围，重新显示感叹号");
+        }
+        //新增结束
         
         if (dialoguePanel != null)
         {
