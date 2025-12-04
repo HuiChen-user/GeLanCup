@@ -6,10 +6,14 @@ public class Move : MonoBehaviour
 {
     public float speed = 3f;
     private Rigidbody2D rb;
+    // 1. 新增：声明动画控制器变量
+    private Animator animator;
     
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
+        // 2. 新增：获取角色身上的Animator组件
+        animator = GetComponent<Animator>();
         
         // 确保刚体设置正确
         if (rb != null)
@@ -51,5 +55,10 @@ public class Move : MonoBehaviour
         
         // 只设置X轴速度，Y轴保持为0
         rb.velocity = new Vector2(moveX * speed, 0);
+        // 3. 新增：最重要的一行！将移动速度的绝对值赋值给动画参数"Speed"
+        if (animator != null)
+        {
+            animator.SetFloat("Speed", Mathf.Abs(moveX));
+        }
     }
 }
