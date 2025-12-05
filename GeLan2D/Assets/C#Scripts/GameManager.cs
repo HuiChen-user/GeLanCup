@@ -7,18 +7,15 @@ public class GameManager : MonoBehaviour
 {
     public static GameManager Instance;
     
-    [Header("玩家预制体")]
-    public GameObject playerPrefab;
-    public GameObject canvasPrefab;
-    public GameObject cameraPrefab;
+    [Header("预制体引用")]
+    public GameObject playerPrefab;    // 拖入Player预制体
+    public GameObject canvasPrefab;    // 拖入Canvas预制体
+    public GameObject cameraPrefab;    // 拖入Main Camera预制体
     
     [Header("场景数据")]
     public string currentSceneName;
     public Vector3 lastPlayerPosition;
     public Rect lastRoomBounds;
-    
-    // 保存的玩家数据
-    private List<ItemData> savedInventory = new List<ItemData>();
     
     void Awake()
     {
@@ -32,6 +29,7 @@ public class GameManager : MonoBehaviour
         else
         {
             Destroy(gameObject);
+            return;
         }
     }
     
@@ -40,68 +38,71 @@ public class GameManager : MonoBehaviour
         // 确保场景中有玩家（如果还没有）
         if (GameObject.FindGameObjectWithTag("Player") == null && playerPrefab != null)
         {
-            Instantiate(playerPrefab, Vector3.zero, Quaternion.identity);
+            GameObject player = Instantiate(playerPrefab, Vector3.zero, Quaternion.identity);
+            DontDestroyOnLoad(player);  // 玩家也持久化
         }
         
         // 确保有UI
         if (GameObject.Find("Canvas") == null && canvasPrefab != null)
         {
-            Instantiate(canvasPrefab);
+            GameObject canvas = Instantiate(canvasPrefab);
+            DontDestroyOnLoad(canvas);
+        }
+        
+        // 确保有摄像机
+        if (Camera.main == null && cameraPrefab != null)
+        {
+            GameObject camera = Instantiate(cameraPrefab);
+            DontDestroyOnLoad(camera);
         }
         
         // 记录当前场景
         currentSceneName = SceneManager.GetActiveScene().name;
     }
     
-    // 保存当前场景数据
+    void Start()
+    {
+        // 如果这是第一个场景，加载初始房间
+        if (SceneManager.sceneCount == 1)
+        {
+            // 加载第一个房间（例如：大厅或关卡1）
+            SceneManager.LoadScene("Room1", LoadSceneMode.Additive);
+        }
+    }
+    
+    // 新增：保存当前场景数据的方法
     public void SaveCurrentSceneData()
     {
+        // 保存当前场景名称
+        currentSceneName = SceneManager.GetActiveScene().name;
+        
+        // 保存玩家位置
         GameObject player = GameObject.FindGameObjectWithTag("Player");
         if (player != null)
         {
             lastPlayerPosition = player.transform.position;
         }
         
-        // 保存背包数据
-        if (InventoryManager.Instance != null)
-        {
-            savedInventory.Clear();
-            // 这里需要根据你的InventoryManager实际结构来保存
-            // 例如：savedInventory = InventoryManager.Instance.GetAllItems();
-        }
-        
         // 保存摄像机边界
-        Camera mainCamera = Camera.main;
-        if (mainCamera != null)
+        if (Camera.main != null)
         {
-            RoomCamera roomCamera = mainCamera.GetComponent<RoomCamera>();
+            RoomCamera roomCamera = Camera.main.GetComponent<RoomCamera>();
             if (roomCamera != null)
             {
                 lastRoomBounds = roomCamera.currentRoomBounds;
             }
         }
+        
+        Debug.Log($"保存场景数据：{currentSceneName}，玩家位置：{lastPlayerPosition}");
     }
     
-    // 恢复玩家数据
-    public void RestorePlayerData(Vector3 spawnPosition)
+    // 新增：恢复玩家位置（可选，用于返回上个场景）
+    public void RestorePlayerPosition()
     {
         GameObject player = GameObject.FindGameObjectWithTag("Player");
         if (player != null)
         {
-            player.transform.position = spawnPosition;
+            player.transform.position = lastPlayerPosition;
         }
-        
-        // 恢复背包数据
-        if (InventoryManager.Instance != null && savedInventory.Count > 0)
-        {
-            // 恢复背包物品
-            // 例如：foreach (ItemData item in savedInventory) {...}
-        }
-    }
-    
-    // 返回上一个场景（如果需要）
-    public void ReturnToPreviousScene()
-    {
-        // 这里可以实现返回功能
     }
 }
