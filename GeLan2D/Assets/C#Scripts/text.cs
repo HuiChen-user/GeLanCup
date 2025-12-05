@@ -38,9 +38,8 @@ public class NPCDialogue2D : MonoBehaviour
     [Header("2D提示设置")]
     public GameObject interactionHintUI;
     public SpriteRenderer interactionHintSprite;
-    public Vector2 hintOffset = new Vector2(0.5f, 1f); // 修改为右上角偏移
-    public float hintPixelOffsetX = 20f; // 新增：像素级水平偏移
-    public float hintPixelOffsetY = 20f; // 新增：像素级垂直偏移
+    public float hintPixelOffsetX = 20f; // 水平偏移
+    public float hintPixelOffsetY = 20f; // 垂直偏移
     
     [Header("自动对话设置")]
     public float autoTriggerDelay = 0.5f;
@@ -127,8 +126,6 @@ public class NPCDialogue2D : MonoBehaviour
         if (interactionHintSprite != null)
         {
             interactionHintSprite.enabled = false;
-            // 初始位置设置在NPC右上角
-            UpdateHintPosition();
         }
         
         // 初始化打字机音效组件
@@ -141,89 +138,44 @@ public class NPCDialogue2D : MonoBehaviour
         }
     }
     
-    // 新增：专门更新提示位置的方法（统一的位置计算逻辑）
+    // 新增：专门更新提示位置的方法（直接定位到玩家头顶）
     void UpdateHintPosition()
     {
-        if (mainCamera == null || (!interactionHintSprite && !interactionHintUI)) return;
+        if (mainCamera == null || playerTransform == null || 
+            (!interactionHintSprite && !interactionHintUI)) return;
         
-        // 如果不跟随玩家，固定在NPC上方
-        if (!followPlayer && playerTransform != null)
+        // 计算玩家头顶位置
+        Vector3 playerHeadPos = playerTransform.position + Vector3.up * 1.5f;
+        Vector3 screenPos = mainCamera.WorldToScreenPoint(playerHeadPos);
+        
+        if (screenPos.z < 0) screenPos *= -1;
+        
+        // 设置Sprite提示位置
+        if (interactionHintSprite != null && interactionHintSprite.enabled)
         {
-            // 计算NPC的"头顶"位置
-            SpriteRenderer npcSprite = GetComponent<SpriteRenderer>();
-            Collider2D npcCollider = GetComponent<Collider2D>();
-            float npcHeight = 1f; // 默认高度
-            
-            if (npcSprite != null)
-            {
-                npcHeight = npcSprite.bounds.extents.y;
-            }
-            else if (npcCollider != null)
-            {
-                npcHeight = npcCollider.bounds.extents.y;
-            }
-            
-            Vector3 npcTopPos = transform.position + Vector3.up * npcHeight;
-            Vector3 screenPos = mainCamera.WorldToScreenPoint(npcTopPos);
-            
-            if (screenPos.z < 0) screenPos *= -1;
-            
-            // 设置Sprite提示位置
-            if (interactionHintSprite != null && interactionHintSprite.enabled)
-            {
-                Vector3 worldPos = mainCamera.ScreenToWorldPoint(screenPos);
-                worldPos.z = transform.position.z;
-                interactionHintSprite.transform.position = worldPos + 
-                    new Vector3(hintPixelOffsetX * 0.01f, hintPixelOffsetY * 0.01f, 0);
-            }
-            // 设置UI提示位置
-            else if (hintRectTransform != null && interactionHintUI != null && interactionHintUI.activeSelf)
-            {
-                Vector2 canvasPos;
-                if (RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                    hintRectTransform.parent as RectTransform,
-                    screenPos,
-                    uiCanvas != null ? uiCanvas.worldCamera : mainCamera,
-                    out canvasPos))
-                {
-                    // 添加像素偏移
-                    canvasPos.x += hintPixelOffsetX;
-                    canvasPos.y += hintPixelOffsetY;
-                    hintRectTransform.anchoredPosition = canvasPos;
-                }
-            }
+            Vector3 worldPos = mainCamera.ScreenToWorldPoint(screenPos);
+            worldPos.z = transform.position.z;
+            // 添加偏移量
+            worldPos.x += hintPixelOffsetX * 0.01f;
+            worldPos.y += hintPixelOffsetY * 0.01f;
+            interactionHintSprite.transform.position = worldPos;
         }
-        // 跟随玩家时（与对话框逻辑保持一致）
-        else if (playerTransform != null)
+        // 设置UI提示位置
+        else if (hintRectTransform != null && interactionHintUI != null && interactionHintUI.activeSelf)
         {
-            Vector3 playerHeadPos = playerTransform.position + Vector3.up * 1.5f;
-            Vector3 screenPos = mainCamera.WorldToScreenPoint(playerHeadPos);
+            Vector2 canvasPos;
+            Camera uiCamera = uiCanvas != null ? uiCanvas.worldCamera : mainCamera;
             
-            if (screenPos.z < 0) screenPos *= -1;
-            
-            // 设置Sprite提示位置
-            if (interactionHintSprite != null && interactionHintSprite.enabled)
+            if (RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                hintRectTransform.parent as RectTransform,
+                screenPos,
+                uiCamera,
+                out canvasPos))
             {
-                Vector3 worldPos = mainCamera.ScreenToWorldPoint(screenPos);
-                worldPos.z = transform.position.z;
-                interactionHintSprite.transform.position = worldPos + 
-                    new Vector3(hintPixelOffsetX * 0.01f, hintPixelOffsetY * 0.01f, 0);
-            }
-            // 设置UI提示位置
-            else if (hintRectTransform != null && interactionHintUI != null && interactionHintUI.activeSelf)
-            {
-                Vector2 canvasPos;
-                if (RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                    hintRectTransform.parent as RectTransform,
-                    screenPos,
-                    uiCanvas != null ? uiCanvas.worldCamera : mainCamera,
-                    out canvasPos))
-                {
-                    // 添加像素偏移
-                    canvasPos.x += hintPixelOffsetX;
-                    canvasPos.y += hintPixelOffsetY;
-                    hintRectTransform.anchoredPosition = canvasPos;
-                }
+                // 直接设置到玩家头顶位置，添加像素偏移
+                canvasPos.x += hintPixelOffsetX;
+                canvasPos.y += hintPixelOffsetY;
+                hintRectTransform.anchoredPosition = canvasPos;
             }
         }
     }

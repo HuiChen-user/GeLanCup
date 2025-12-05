@@ -600,7 +600,6 @@ MonoBehaviour:
   dialogueFile: {fileID: 4900000, guid: df619fd0d7eb22445bef930cc7c51242, type: 3}
   interactionHintUI: {fileID: 1269030344}
   interactionHintSprite: {fileID: 0}
-  hintOffset: {x: 0, y: 1}
   hintPixelOffsetX: 20
   hintPixelOffsetY: 20
   autoTriggerDelay: 0.5
@@ -3380,7 +3379,6 @@ MonoBehaviour:
   doorToUnlock: {fileID: 0}
   interactionHintUI: {fileID: 227401133}
   interactionHintSprite: {fileID: 0}
-  hintOffset: {x: 0.5, y: 1}
   hintPixelOffsetX: 20
   hintPixelOffsetY: 20
   useTestMode: 0
@@ -3613,7 +3611,6 @@ MonoBehaviour:
   dialogueFile: {fileID: 4900000, guid: 73cabf03424c0ff428ede9653d7c8b03, type: 3}
   interactionHintUI: {fileID: 1127054605}
   interactionHintSprite: {fileID: 0}
-  hintOffset: {x: 0, y: 1}
   hintPixelOffsetX: 20
   hintPixelOffsetY: 20
   autoTriggerDelay: 0.5
@@ -4020,7 +4017,7 @@ Transform:
   m_GameObject: {fileID: 1127054605}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.15, y: 1.3, z: 0}
+  m_LocalPosition: {x: 0.08, y: 1.65, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -4523,7 +4520,6 @@ MonoBehaviour:
   dialogueFile: {fileID: 4900000, guid: 73cabf03424c0ff428ede9653d7c8b03, type: 3}
   interactionHintUI: {fileID: 0}
   interactionHintSprite: {fileID: 0}
-  hintOffset: {x: 0, y: 1}
   hintPixelOffsetX: 20
   hintPixelOffsetY: 20
   autoTriggerDelay: 0.5
