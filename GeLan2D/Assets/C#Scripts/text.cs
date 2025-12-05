@@ -9,47 +9,49 @@ public class NPCDialogue2D : MonoBehaviour
     [Header("UI组件")]
     public GameObject dialoguePanel;
     public Text dialogueText;
-
+    
     [Header("2D位置设置")]
     public float verticalOffset = 100f;
     public bool followPlayer = true;
     public float interactionRange = 3f;
-
+    
     [Header("交互模式设置")]
     public bool autoTrigger = false;
     public bool destroyAfterAutoDialogue = true;
     public KeyCode startKey = KeyCode.E;
     public KeyCode nextKey = KeyCode.R;
-
+    
     [Header("ESC退出设置")]
     public bool allowESCToExit = true;
     public bool resetOnESCExit = true;
-
+    
     [Header("玩家控制设置")]
     public bool freezePlayerDuringDialogue = true;
-
+    
     [Header("2D碰撞检测")]
     public CircleCollider2D interactionArea;
     public bool useTriggerDetection = true;
-
+    
     [Header("对话文件")]
     public TextAsset dialogueFile;
-
-    [Header("2D提示")]
+    
+    [Header("2D提示设置")]
     public GameObject interactionHintUI;
     public SpriteRenderer interactionHintSprite;
-    public Vector2 hintOffset = new Vector2(0, 1f);
-
+    public Vector2 hintOffset = new Vector2(0.5f, 1f); // 修改为右上角偏移
+    public float hintPixelOffsetX = 20f; // 新增：像素级水平偏移
+    public float hintPixelOffsetY = 20f; // 新增：像素级垂直偏移
+    
     [Header("自动对话设置")]
     public float autoTriggerDelay = 0.5f;
     private bool isAutoTriggering = false;
     private bool hasAutoDialogueCompleted = false;
-
+    
     [Header("打字机效果设置")]
     public bool useTypewriterEffect = true;
     public float typewriterSpeed = 0.05f;
     public AudioClip typeSound;
-
+    
     // 私有变量
     private List<string> textList = new List<string>();
     private int currentIndex = 0;
@@ -66,7 +68,10 @@ public class NPCDialogue2D : MonoBehaviour
     // 新增：用于Canvas坐标转换
     private Canvas uiCanvas;
     private RectTransform canvasRect;
-
+    
+    // 新增：用于UI提示
+    private RectTransform hintRectTransform; // 如果是UI类型提示
+    
     void Start()
     {
         InitializeComponents();
@@ -74,7 +79,7 @@ public class NPCDialogue2D : MonoBehaviour
         LoadDialogue();
         FindPlayerControlComponent();
     }
-
+    
     void InitializeComponents()
     {
         mainCamera = Camera.main;
@@ -87,10 +92,8 @@ public class NPCDialogue2D : MonoBehaviour
         if (dialoguePanel != null)
         {
             panelRect = dialoguePanel.GetComponent<RectTransform>();
-            
             // 关键：设置正确的锚点和轴心（像原版那样）
             SetupPanelAnchor();
-            
             dialoguePanel.SetActive(false);
             
             // 查找Canvas
@@ -114,8 +117,19 @@ public class NPCDialogue2D : MonoBehaviour
         }
         
         // 设置提示
-        if (interactionHintUI != null) interactionHintUI.SetActive(false);
-        if (interactionHintSprite != null) interactionHintSprite.enabled = false;
+        if (interactionHintUI != null)
+        {
+            interactionHintUI.SetActive(false);
+            // 如果是UI类型，获取RectTransform
+            hintRectTransform = interactionHintUI.GetComponent<RectTransform>();
+        }
+        
+        if (interactionHintSprite != null)
+        {
+            interactionHintSprite.enabled = false;
+            // 初始位置设置在NPC右上角
+            UpdateHintPosition();
+        }
         
         // 初始化打字机音效组件
         if (typeSound != null)
@@ -124,6 +138,93 @@ public class NPCDialogue2D : MonoBehaviour
             typeAudioSource.clip = typeSound;
             typeAudioSource.volume = 0.5f;
             typeAudioSource.playOnAwake = false;
+        }
+    }
+    
+    // 新增：专门更新提示位置的方法（统一的位置计算逻辑）
+    void UpdateHintPosition()
+    {
+        if (mainCamera == null || (!interactionHintSprite && !interactionHintUI)) return;
+        
+        // 如果不跟随玩家，固定在NPC上方
+        if (!followPlayer && playerTransform != null)
+        {
+            // 计算NPC的"头顶"位置
+            SpriteRenderer npcSprite = GetComponent<SpriteRenderer>();
+            Collider2D npcCollider = GetComponent<Collider2D>();
+            float npcHeight = 1f; // 默认高度
+            
+            if (npcSprite != null)
+            {
+                npcHeight = npcSprite.bounds.extents.y;
+            }
+            else if (npcCollider != null)
+            {
+                npcHeight = npcCollider.bounds.extents.y;
+            }
+            
+            Vector3 npcTopPos = transform.position + Vector3.up * npcHeight;
+            Vector3 screenPos = mainCamera.WorldToScreenPoint(npcTopPos);
+            
+            if (screenPos.z < 0) screenPos *= -1;
+            
+            // 设置Sprite提示位置
+            if (interactionHintSprite != null && interactionHintSprite.enabled)
+            {
+                Vector3 worldPos = mainCamera.ScreenToWorldPoint(screenPos);
+                worldPos.z = transform.position.z;
+                interactionHintSprite.transform.position = worldPos + 
+                    new Vector3(hintPixelOffsetX * 0.01f, hintPixelOffsetY * 0.01f, 0);
+            }
+            // 设置UI提示位置
+            else if (hintRectTransform != null && interactionHintUI != null && interactionHintUI.activeSelf)
+            {
+                Vector2 canvasPos;
+                if (RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                    hintRectTransform.parent as RectTransform,
+                    screenPos,
+                    uiCanvas != null ? uiCanvas.worldCamera : mainCamera,
+                    out canvasPos))
+                {
+                    // 添加像素偏移
+                    canvasPos.x += hintPixelOffsetX;
+                    canvasPos.y += hintPixelOffsetY;
+                    hintRectTransform.anchoredPosition = canvasPos;
+                }
+            }
+        }
+        // 跟随玩家时（与对话框逻辑保持一致）
+        else if (playerTransform != null)
+        {
+            Vector3 playerHeadPos = playerTransform.position + Vector3.up * 1.5f;
+            Vector3 screenPos = mainCamera.WorldToScreenPoint(playerHeadPos);
+            
+            if (screenPos.z < 0) screenPos *= -1;
+            
+            // 设置Sprite提示位置
+            if (interactionHintSprite != null && interactionHintSprite.enabled)
+            {
+                Vector3 worldPos = mainCamera.ScreenToWorldPoint(screenPos);
+                worldPos.z = transform.position.z;
+                interactionHintSprite.transform.position = worldPos + 
+                    new Vector3(hintPixelOffsetX * 0.01f, hintPixelOffsetY * 0.01f, 0);
+            }
+            // 设置UI提示位置
+            else if (hintRectTransform != null && interactionHintUI != null && interactionHintUI.activeSelf)
+            {
+                Vector2 canvasPos;
+                if (RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                    hintRectTransform.parent as RectTransform,
+                    screenPos,
+                    uiCanvas != null ? uiCanvas.worldCamera : mainCamera,
+                    out canvasPos))
+                {
+                    // 添加像素偏移
+                    canvasPos.x += hintPixelOffsetX;
+                    canvasPos.y += hintPixelOffsetY;
+                    hintRectTransform.anchoredPosition = canvasPos;
+                }
+            }
         }
     }
     
@@ -168,7 +269,7 @@ public class NPCDialogue2D : MonoBehaviour
             playerControlComponent = scripts[0];
         }
     }
-
+    
     void Update()
     {
         if (!useTriggerDetection)
@@ -205,8 +306,18 @@ public class NPCDialogue2D : MonoBehaviour
                 OnESCExit();
             }
         }
+        
+        // 实时更新提示位置（如果可见）
+        if (playerInRange && !isDialogueActive && !hasAutoDialogueCompleted)
+        {
+            if ((interactionHintSprite != null && interactionHintSprite.enabled) ||
+                (interactionHintUI != null && interactionHintUI.activeSelf))
+            {
+                UpdateHintPosition();
+            }
+        }
     }
-
+    
     void OnESCExit()
     {
         isDialogueActive = false;
@@ -243,7 +354,7 @@ public class NPCDialogue2D : MonoBehaviour
         
         Debug.Log("对话已通过ESC退出");
     }
-
+    
     void StartDialogue()
     {
         if (textList.Count == 0 || dialoguePanel == null || dialogueText == null)
@@ -284,7 +395,7 @@ public class NPCDialogue2D : MonoBehaviour
         
         currentIndex++;
     }
-
+    
     void NextLine()
     {
         if (currentIndex >= textList.Count)
@@ -307,7 +418,7 @@ public class NPCDialogue2D : MonoBehaviour
         
         currentIndex++;
     }
-
+    
     void EndDialogue()
     {
         isDialogueActive = false;
@@ -343,7 +454,7 @@ public class NPCDialogue2D : MonoBehaviour
         
         currentIndex = 0;
     }
-
+    
     void FreezePlayer(bool freeze)
     {
         GameObject player = GameObject.FindGameObjectWithTag("Player");
@@ -353,7 +464,6 @@ public class NPCDialogue2D : MonoBehaviour
         if (playerControlComponent != null && freezePlayerDuringDialogue)
         {
             System.Type type = playerControlComponent.GetType();
-            
             FieldInfo canMoveField = type.GetField("canMove", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
             PropertyInfo canMoveProp = type.GetProperty("CanMove", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
             
@@ -427,27 +537,23 @@ public class NPCDialogue2D : MonoBehaviour
             }
         }
     }
-
+    
     // 打字机核心协程（逐字显示文本）
     IEnumerator TypeText(string textToType)
     {
         dialogueText.text = "";
-        
         foreach (char c in textToType.ToCharArray())
         {
             dialogueText.text += c;
-            
             if (typeAudioSource != null && typeSound != null)
             {
                 typeAudioSource.PlayOneShot(typeSound);
             }
-            
             yield return new WaitForSeconds(typewriterSpeed);
         }
-        
         typingCoroutine = null;
     }
-
+    
     // 关键修复：正确的Canvas坐标计算方法（像原版那样）
     void UpdateDialoguePosition()
     {
@@ -470,7 +576,8 @@ public class NPCDialogue2D : MonoBehaviour
         }
         
         // 获取玩家在屏幕上的位置
-        Vector3 screenPos = mainCamera.WorldToScreenPoint(playerTransform.position);
+        Vector3 playerHeadPos = playerTransform.position + Vector3.up * 1.5f;
+        Vector3 screenPos = mainCamera.WorldToScreenPoint(playerHeadPos);
         
         // 如果玩家在屏幕外，使用默认位置
         if (screenPos.z < 0)
@@ -504,7 +611,7 @@ public class NPCDialogue2D : MonoBehaviour
             panelRect.anchoredPosition = new Vector2(0, screenPos.y + verticalOffset);
         }
     }
-
+    
     // 以下为原脚本的辅助方法
     void SetupInteractionArea()
     {
@@ -520,14 +627,13 @@ public class NPCDialogue2D : MonoBehaviour
             interactionArea.radius = interactionRange;
         }
     }
-
+    
     void LoadDialogue()
     {
         if (dialogueFile != null)
         {
             string fullText = dialogueFile.text;
             string[] lines = fullText.Split(new string[] { "\n", "\r\n" }, System.StringSplitOptions.RemoveEmptyEntries);
-            
             textList.AddRange(lines);
         }
         else
@@ -535,7 +641,7 @@ public class NPCDialogue2D : MonoBehaviour
             Debug.LogWarning("未指定对话文件！");
         }
     }
-
+    
     void CheckPlayerDistance()
     {
         if (playerTransform != null)
@@ -555,7 +661,7 @@ public class NPCDialogue2D : MonoBehaviour
             UpdateInteractionHint();
         }
     }
-
+    
     void OnTriggerEnter2D(Collider2D other)
     {
         if (useTriggerDetection && other.CompareTag("Player"))
@@ -570,7 +676,7 @@ public class NPCDialogue2D : MonoBehaviour
             }
         }
     }
-
+    
     void OnTriggerExit2D(Collider2D other)
     {
         if (useTriggerDetection && other.CompareTag("Player"))
@@ -579,7 +685,7 @@ public class NPCDialogue2D : MonoBehaviour
             UpdateInteractionHint();
         }
     }
-
+    
     IEnumerator AutoTriggerDialogue()
     {
         if (isAutoTriggering) yield break;
@@ -594,7 +700,7 @@ public class NPCDialogue2D : MonoBehaviour
         
         isAutoTriggering = false;
     }
-
+    
     void UpdateInteractionHint()
     {
         if (isDialogueActive || hasAutoDialogueCompleted || autoTrigger)
@@ -606,21 +712,23 @@ public class NPCDialogue2D : MonoBehaviour
             ShowInteractionHint(playerInRange);
         }
     }
-
+    
+    // 显示/隐藏提示
     void ShowInteractionHint(bool show)
     {
         if (interactionHintUI != null)
             interactionHintUI.SetActive(show);
+        
         if (interactionHintSprite != null)
             interactionHintSprite.enabled = show;
         
-        // 更新提示位置
-        if (show && playerTransform != null && interactionHintSprite != null)
+        // 显示时更新位置
+        if (show)
         {
-            interactionHintSprite.transform.position = (Vector2)playerTransform.position + hintOffset;
+            UpdateHintPosition();
         }
     }
-
+    
     IEnumerator DestroyAfterDelay(float delay)
     {
         yield return new WaitForSeconds(delay);

@@ -39,22 +39,29 @@ public class PlayerCenteredUnlockSystem_Testable : MonoBehaviour
     [Header("门解锁")]
     public GameObject doorToUnlock;
     
+    [Header("2D提示设置")]
+    public GameObject interactionHintUI;
+    public SpriteRenderer interactionHintSprite;
+    public Vector2 hintOffset = new Vector2(0.5f, 1f); // 右上角偏移
+    public float hintPixelOffsetX = 20f; // 像素级水平偏移
+    public float hintPixelOffsetY = 20f; // 像素级垂直偏移
+    
     [Header("测试模式")]
     public bool useTestMode = true;
     public bool showDebugLogs = true;
     
-    // 打字机效果设置
-    [Header("打字机效果设置")]
-    public float typingSpeed = 0.05f; // 每个字符显示的时间间隔
-    private Coroutine typingCoroutine; // 用于控制打字机效果的协程
-    
     // 临时物品存储（用于测试）
     private static Dictionary<string, int> testInventory = new Dictionary<string, int>();
+    
     private bool isUnlocked = false;
     private Transform playerTransform;
     private RectTransform panelRect;
     private RectTransform popupRect;
     private Camera mainCamera;
+    
+    // 新增：用于2D提示
+    private bool playerInRange = false;
+    private RectTransform hintRectTransform; // 如果是UI类型提示
     
     void Start()
     {
@@ -91,6 +98,21 @@ public class PlayerCenteredUnlockSystem_Testable : MonoBehaviour
             }
         }
         
+        // 初始化2D提示
+        if (interactionHintUI != null)
+        {
+            interactionHintUI.SetActive(false);
+            // 如果是UI类型，获取RectTransform
+            hintRectTransform = interactionHintUI.GetComponent<RectTransform>();
+        }
+        
+        if (interactionHintSprite != null)
+        {
+            interactionHintSprite.enabled = false;
+            // 初始位置设置在密码锁右上角
+            UpdateHintPosition();
+        }
+        
         // 设置提交按钮事件（如果提供了按钮）
         if (submitButton != null)
         {
@@ -121,6 +143,24 @@ public class PlayerCenteredUnlockSystem_Testable : MonoBehaviour
     
     void Update()
     {
+        // 检测玩家是否在交互范围内
+        if (playerTransform != null)
+        {
+            float distance = Vector3.Distance(transform.position, playerTransform.position);
+            bool newInRange = distance <= interactionRange;
+            
+            if (newInRange != playerInRange)
+            {
+                playerInRange = newInRange;
+                UpdateInteractionHint();
+            }
+        }
+        else
+        {
+            playerInRange = false;
+            UpdateInteractionHint();
+        }
+        
         if (isUnlocked) return;
         
         // 检测玩家是否在交互范围内
@@ -161,10 +201,143 @@ public class PlayerCenteredUnlockSystem_Testable : MonoBehaviour
             UpdateUIPosition(popupRect, popupVerticalOffset);
         }
         
+        // 实时更新提示位置（如果可见）
+        if (playerInRange && !isUnlocked &&
+            unlockPanel != null && !unlockPanel.activeSelf)
+        {
+            if ((interactionHintSprite != null && interactionHintSprite.enabled) ||
+                (interactionHintUI != null && interactionHintUI.activeSelf))
+            {
+                UpdateHintPosition();
+            }
+        }
+        
         // 测试快捷键
         if (Input.GetKeyDown(KeyCode.P) && showDebugLogs)
         {
             ShowTestInventory();
+        }
+    }
+    
+    // 更新提示位置（使用与对话框相同的位置计算逻辑）
+    void UpdateHintPosition()
+    {
+        if (mainCamera == null || (!interactionHintSprite && !interactionHintUI)) return;
+        
+        // 如果不跟随玩家，固定在物体上方
+        if (!followPlayer && playerTransform != null)
+        {
+            // 计算物体的"头顶"位置
+            Renderer objRenderer = GetComponent<Renderer>();
+            Collider objCollider = GetComponent<Collider>();
+            float objHeight = 1f; // 默认高度
+            
+            if (objRenderer != null)
+            {
+                objHeight = objRenderer.bounds.extents.y;
+            }
+            else if (objCollider != null)
+            {
+                objHeight = objCollider.bounds.extents.y;
+            }
+            
+            Vector3 objTopPos = transform.position + Vector3.up * objHeight;
+            Vector3 screenPos = mainCamera.WorldToScreenPoint(objTopPos);
+            
+            if (screenPos.z < 0) screenPos *= -1;
+            
+            // 设置Sprite提示位置
+            if (interactionHintSprite != null && interactionHintSprite.enabled)
+            {
+                Vector3 worldPos = mainCamera.ScreenToWorldPoint(screenPos);
+                worldPos.z = transform.position.z;
+                interactionHintSprite.transform.position = worldPos + 
+                    new Vector3(hintPixelOffsetX * 0.01f, hintPixelOffsetY * 0.01f, 0);
+            }
+            // 设置UI提示位置
+            else if (hintRectTransform != null && interactionHintUI != null && interactionHintUI.activeSelf)
+            {
+                Vector2 canvasPos;
+                if (RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                    hintRectTransform.parent as RectTransform,
+                    screenPos,
+                    mainCamera,
+                    out canvasPos))
+                {
+                    // 添加像素偏移
+                    canvasPos.x += hintPixelOffsetX;
+                    canvasPos.y += hintPixelOffsetY;
+                    hintRectTransform.anchoredPosition = canvasPos;
+                }
+            }
+        }
+        // 跟随玩家时（与对话框逻辑保持一致）
+        else if (playerTransform != null)
+        {
+            Vector3 playerHeadPos = playerTransform.position + Vector3.up * 1.5f;
+            Vector3 screenPos = mainCamera.WorldToScreenPoint(playerHeadPos);
+            
+            if (screenPos.z < 0) screenPos *= -1;
+            
+            // 设置Sprite提示位置
+            if (interactionHintSprite != null && interactionHintSprite.enabled)
+            {
+                Vector3 worldPos = mainCamera.ScreenToWorldPoint(screenPos);
+                worldPos.z = transform.position.z;
+                interactionHintSprite.transform.position = worldPos + 
+                    new Vector3(hintPixelOffsetX * 0.01f, hintPixelOffsetY * 0.01f, 0);
+            }
+            // 设置UI提示位置
+            else if (hintRectTransform != null && interactionHintUI != null && interactionHintUI.activeSelf)
+            {
+                Vector2 canvasPos;
+                if (RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                    hintRectTransform.parent as RectTransform,
+                    screenPos,
+                    mainCamera,
+                    out canvasPos))
+                {
+                    // 添加像素偏移
+                    canvasPos.x += hintPixelOffsetX;
+                    canvasPos.y += hintPixelOffsetY;
+                    hintRectTransform.anchoredPosition = canvasPos;
+                }
+            }
+        }
+    }
+    
+    // 显示/隐藏提示
+    void ShowInteractionHint(bool show)
+    {
+        if (interactionHintUI != null)
+            interactionHintUI.SetActive(show);
+        
+        if (interactionHintSprite != null)
+            interactionHintSprite.enabled = show;
+        
+        // 显示时更新位置
+        if (show)
+        {
+            UpdateHintPosition();
+        }
+    }
+    
+    // 更新交互提示状态
+    void UpdateInteractionHint()
+    {
+        if (isUnlocked)
+        {
+            ShowInteractionHint(false);
+            return;
+        }
+        
+        if (unlockPanel != null && unlockPanel.activeSelf)
+        {
+            ShowInteractionHint(false);
+        }
+        else
+        {
+            ShowInteractionHint(playerInRange);
         }
     }
     
@@ -179,7 +352,7 @@ public class PlayerCenteredUnlockSystem_Testable : MonoBehaviour
     // 更新UI位置（通用方法）
     void UpdateUIPosition(RectTransform uiRect, float verticalOffset)
     {
-        if (playerTransform == null || mainCamera == null) return;
+        if (playerTransform == null || mainCamera == null || uiRect == null) return;
         
         Vector3 playerHeadPos = playerTransform.position + Vector3.up * 1.5f;
         Vector3 screenPos = mainCamera.WorldToScreenPoint(playerHeadPos);
@@ -198,25 +371,6 @@ public class PlayerCenteredUnlockSystem_Testable : MonoBehaviour
         }
     }
     
-    // 打字机效果显示文本
-    IEnumerator TypeTextEffect(Text targetText, string fullText)
-    {
-        targetText.text = "";
-        
-        // 如果有正在进行的打字效果，先停止它
-        if (typingCoroutine != null)
-        {
-            StopCoroutine(typingCoroutine);
-        }
-        
-        // 逐个字符显示
-        foreach (char c in fullText)
-        {
-            targetText.text += c;
-            yield return new WaitForSeconds(typingSpeed);
-        }
-    }
-    
     // 打开解锁面板
     void ShowUnlockPanel()
     {
@@ -232,8 +386,10 @@ public class PlayerCenteredUnlockSystem_Testable : MonoBehaviour
         
         if (unlockPanel == null) return;
         
-        unlockPanel.SetActive(true);
+        // 隐藏交互提示
+        ShowInteractionHint(false);
         
+        unlockPanel.SetActive(true);
         if (panelRect != null && mainCamera != null)
         {
             UpdateUIPosition(panelRect, panelVerticalOffset);
@@ -248,8 +404,7 @@ public class PlayerCenteredUnlockSystem_Testable : MonoBehaviour
         
         if (messageText != null)
         {
-            string fullText = $"输入密码（最多{password.Length}位）：";
-            typingCoroutine = StartCoroutine(TypeTextEffect(messageText, fullText));
+            messageText.text = $"输入密码（最多{password.Length}位）：";
             messageText.color = Color.white;
         }
         
@@ -265,6 +420,12 @@ public class PlayerCenteredUnlockSystem_Testable : MonoBehaviour
         if (unlockPanel != null)
         {
             unlockPanel.SetActive(false);
+        }
+        
+        // 如果玩家还在范围内且未解锁，显示提示
+        if (playerInRange && !isUnlocked)
+        {
+            ShowInteractionHint(true);
         }
     }
     
@@ -284,7 +445,6 @@ public class PlayerCenteredUnlockSystem_Testable : MonoBehaviour
         if (passwordInput == null) return;
         
         string inputText = passwordInput.text;
-        
         if (inputText == password)
         {
             OnUnlockSuccess();
@@ -322,6 +482,9 @@ public class PlayerCenteredUnlockSystem_Testable : MonoBehaviour
     {
         isUnlocked = true;
         
+        // 隐藏交互提示
+        ShowInteractionHint(false);
+        
         // 关闭输入面板
         CloseUnlockPanel();
         
@@ -348,7 +511,12 @@ public class PlayerCenteredUnlockSystem_Testable : MonoBehaviour
             }
         }
         
-        // 注意：这里移除了改变自身颜色的代码
+        // 改变自身颜色表示已解锁
+        Renderer renderer = GetComponent<Renderer>();
+        if (renderer != null)
+        {
+            renderer.material.color = Color.green;
+        }
         
         if (showDebugLogs)
         {
@@ -364,8 +532,7 @@ public class PlayerCenteredUnlockSystem_Testable : MonoBehaviour
             // 设置成功消息
             if (successMessageText != null)
             {
-                // 使用打字机效果显示成功消息
-                typingCoroutine = StartCoroutine(TypeTextEffect(successMessageText, message));
+                successMessageText.text = message;
                 successMessageText.color = Color.green;
             }
             
@@ -386,8 +553,7 @@ public class PlayerCenteredUnlockSystem_Testable : MonoBehaviour
             // 如果没有弹窗，在消息文本显示
             if (messageText != null)
             {
-                // 使用打字机效果显示消息
-                typingCoroutine = StartCoroutine(TypeTextEffect(messageText, message));
+                messageText.text = message;
                 messageText.color = Color.green;
                 StartCoroutine(ClearMessageAfterDelay(2f));
             }
@@ -521,8 +687,11 @@ public class PlayerCenteredUnlockSystem_Testable : MonoBehaviour
     void ResetLockState()
     {
         isUnlocked = false;
-        
-        // 注意：这里移除了重置颜色的代码，因为没有颜色变化了
+        Renderer renderer = GetComponent<Renderer>();
+        if (renderer != null)
+        {
+            renderer.material.color = Color.blue;
+        }
         
         Debug.Log("密码锁状态已重置");
     }
