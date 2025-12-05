@@ -3916,7 +3916,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   hintSpriteRenderer: {fileID: 1359205748}
-  exclamationSprite: {fileID: 21300000, guid: 27e29ed596443dd4c915187939f4b8e9, type: 3}
+  exclamationSprite: {fileID: 21300000, guid: e0b7b3564957e2549ab7e0eac6519590, type: 3}
   hintOffset: {x: 1, y: 1, z: 0}
 --- !u!95 &1072258701
 Animator:
