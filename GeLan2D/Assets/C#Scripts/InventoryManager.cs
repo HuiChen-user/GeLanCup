@@ -9,28 +9,27 @@ public class InventoryManager : MonoBehaviour
     public static InventoryManager Instance;
     
     [Header("背包设置")]
-    public Transform inventoryPanel;  // 背包UI的父对象
+    public Transform inventoryPanel; // 背包UI的父对象
     public GameObject itemSlotPrefab; // 物品槽预制体（必须包含背景框、图标、文字）
-    public float slotSpacing = 70f;   // 每个物品槽的垂直间距
+    public float slotSpacing = 70f; // 每个物品槽的垂直间距
     
     [Header("最大容量")]
-    public int maxCapacity = 10;      // 背包最大容量
+    public int maxCapacity = 10; // 背包最大容量
     
     private List<ItemData> inventoryItems = new List<ItemData>();
     private List<GameObject> itemSlots = new List<GameObject>();
     
     void Awake()
-{
-    if (Instance == null)
     {
-        Instance = this;
-        DontDestroyOnLoad(gameObject);  // 添加这一行
+        if (Instance == null)
+        {
+            Instance = this;
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
     }
-    else
-    {
-        Destroy(gameObject);
-    }
-}
     
     void Start()
     {
@@ -153,7 +152,7 @@ public class InventoryManager : MonoBehaviour
         {
             if (excludeParent && component.transform == parent.transform)
                 continue;
-                
+            
             return component;
         }
         

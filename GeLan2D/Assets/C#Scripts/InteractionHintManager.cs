@@ -14,17 +14,17 @@ public class InteractionHintManager : MonoBehaviour
     public Vector3 hintOffset = new Vector3(0.5f, 0.5f, 0); // 相对于玩家的偏移
 
     void Awake()
+{
+    if (Instance == null)
     {
-        if (Instance == null)
-        {
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
-        }
-        else
-        {
-            Destroy(gameObject);
-        };
+        Instance = this;
+        DontDestroyOnLoad(gameObject); // 关键！
     }
+    else
+    {
+        Destroy(gameObject);
+    }
+}
 
     void Start()
     {
