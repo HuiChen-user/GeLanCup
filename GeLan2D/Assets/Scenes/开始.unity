@@ -189,13 +189,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   dialoguePanel: {fileID: 1770242812}
   dialogueText: {fileID: 1927208343}
-  verticalOffset: 500
+  verticalOffset: 400
   followPlayer: 1
   interactionRange: 3
   autoTrigger: 1
   destroyAfterAutoDialogue: 1
   startKey: 101
-  nextKey: 114
+  nextKey: 32
   allowESCToExit: 0
   resetOnESCExit: 1
   freezePlayerDuringDialogue: 1
