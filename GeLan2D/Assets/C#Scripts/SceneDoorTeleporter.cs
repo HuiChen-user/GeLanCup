@@ -31,15 +31,13 @@ public class SceneDoorTeleporter : Interactable
     
     void Start()
     {
-        // 自动查找GameManager
-        gameManager = GameManager.Instance;
-        
-        // 如果没有手动指定黑屏遮罩，尝试查找
-        if (fadeOverlay == null)
-        {
-            GameObject fadeObj = GameObject.Find("FadeOverlay");
-            if (fadeObj != null) fadeOverlay = fadeObj.GetComponent<Image>();
-        }
+        // 确保能访问到GameManager
+    if (GameManager.Instance == null)
+    {
+        Debug.LogError("GameManager不存在！请确保PersistentScene已加载");
+    }
+    
+    // 黑屏遮罩会自动在Canvas中找到
     }
     
     // 重写进入范围方法：总是显示感叹号

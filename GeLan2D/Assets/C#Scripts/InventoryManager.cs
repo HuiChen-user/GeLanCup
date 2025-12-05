@@ -20,16 +20,17 @@ public class InventoryManager : MonoBehaviour
     private List<GameObject> itemSlots = new List<GameObject>();
     
     void Awake()
+{
+    if (Instance == null)
     {
-        if (Instance == null)
-        {
-            Instance = this;
-        }
-        else
-        {
-            Destroy(gameObject);
-        }
+        Instance = this;
+        DontDestroyOnLoad(gameObject);  // 添加这一行
     }
+    else
+    {
+        Destroy(gameObject);
+    }
+}
     
     void Start()
     {

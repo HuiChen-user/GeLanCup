@@ -3,7 +3,10 @@
 --- !u!78 &1
 TagManager:
   serializedVersion: 2
-  tags: []
+  tags:
+  - Sofa
+  - bc
+  - table
   layers:
   - Default
   - TransparentFX
@@ -11,7 +14,7 @@ TagManager:
   - 
   - Water
   - UI
-  - 
+  - Sofa
   - 
   - 
   - 
@@ -43,4 +46,7 @@ TagManager:
     locked: 0
   - name: New Layer 1
     uniqueID: 2717437357
+    locked: 0
+  - name: sofa
+    uniqueID: 3056893767
     locked: 0
