@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using UnityEngine.SceneManagement; // 1. 新增命名空间
 
 public class InventoryManager : MonoBehaviour
 {
@@ -15,7 +16,9 @@ public class InventoryManager : MonoBehaviour
     
     [Header("最大容量")]
     public int maxCapacity = 10; // 背包最大容量
-    
+
+    // 添加这个字典来保存物品ID到图标的映射
+    private Dictionary<int, Sprite> itemIconDictionary = new Dictionary<int, Sprite>();
     private List<ItemData> inventoryItems = new List<ItemData>();
     private List<GameObject> itemSlots = new List<GameObject>();
     
@@ -25,6 +28,10 @@ public class InventoryManager : MonoBehaviour
     {
         Instance = this;
         DontDestroyOnLoad(gameObject); // 添加这一行
+        // +++ 在 DontDestroyOnLoad 之后，添加下面这两行新代码 +++
+        // 订阅场景加载完成的事件
+        SceneManager.sceneLoaded += OnSceneLoaded;
+        // +++ 新增代码结束 +++
     }
     else
     {
@@ -34,10 +41,74 @@ public class InventoryManager : MonoBehaviour
     
     void Start()
     {
-        // 清空背包UI（确保开始时是空的）
-        ClearInventoryUI();
+         // 初始时查找面板并刷新UI
+        FindInventoryPanelInScene();
+        RefreshInventoryUI(); // <--- 修改这一行，原来是 ClearInventoryUI();
         Debug.Log("背包系统初始化完成");
     }
+
+    // ========== 以下是需要添加的三个新方法 ==========
+
+    // 1. 新方法：当新场景加载完成时，Unity会自动调用此函数
+    void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        Debug.Log($"检测到新场景加载: {scene.name}, 正在更新背包UI引用...");
+        FindInventoryPanelInScene();
+        RefreshInventoryUI(); // 刷新UI，显示当前背包物品
+    }
+
+    // 2. 新方法：在当前场景中查找背包面板
+    void FindInventoryPanelInScene()
+    {
+        // 方法：手动检查所有Canvas下是否有我们需要的面板
+        // 这里假设你的背包面板是挂在Canvas下的一个叫 "InventoryPanel" 的GameObject
+        // 如果你的面板名字不同，请将下面代码里的 "InventoryPanel" 替换成你实际的名字！
+        Canvas[] allCanvases = FindObjectsOfType<Canvas>(true); // true表示也会查找隐藏的
+        foreach (Canvas canvas in allCanvases)
+        {
+            Transform panel = canvas.transform.Find("InventoryPanel"); // <-- 注意名字！
+            if (panel != null)
+            {
+                inventoryPanel = panel;
+                Debug.Log($"成功更新背包面板引用: {panel.name}, 位于 {canvas.name}");
+                return; // 找到后直接返回
+            }
+        }
+    
+        // 如果没找到，给出警告
+        if (inventoryPanel == null)
+        {
+            Debug.LogWarning($"在当前场景 {SceneManager.GetActiveScene().name} 中未找到背包面板(InventoryPanel)。物品将无法显示。");
+        }
+    }
+
+    // 3. 新方法：刷新整个背包UI（根据数据列表重新绘制）
+    void RefreshInventoryUI()
+    {
+        // 先清空当前所有UI格子
+        ClearInventoryUI();
+    
+        // 如果面板不存在，无法刷新
+        if (inventoryPanel == null || inventoryItems == null) return;
+    
+        // 遍历所有物品数据，重新创建UI格子
+        for (int i = 0; i < inventoryItems.Count; i++)
+        {
+            ItemData item = inventoryItems[i];
+            Sprite itemSprite = null;
+        
+            // 尝试从字典获取图标
+            if (itemIconDictionary.ContainsKey(item.itemID))
+            {
+                itemSprite = itemIconDictionary[item.itemID];
+            }
+        
+            CreateItemSlot(item, itemSprite);
+        }
+    
+        Debug.Log($"背包UI已刷新，显示 {inventoryItems.Count} 个物品。");
+    }
+    // ========== 新增方法结束 ==========
     
     // 清空背包UI（不删除物品数据）
     void ClearInventoryUI()
@@ -60,56 +131,66 @@ public class InventoryManager : MonoBehaviour
             Debug.LogWarning($"背包已满！最多只能携带{maxCapacity}个物品。");
             return;
         }
-        
+    
         // 1. 添加到物品列表
         inventoryItems.Add(itemData);
-        
-        // 2. 创建UI物品槽
+    
+        // 2. 将图标保存到字典（关键！）
+        if (itemSprite != null && !itemIconDictionary.ContainsKey(itemData.itemID))
+        {
+            itemIconDictionary[itemData.itemID] = itemSprite;
+            Debug.Log($"已缓存物品图标: {itemData.itemName} (ID: {itemData.itemID})");
+        }
+    
+        // 3. 创建UI物品槽
         CreateItemSlot(itemData, itemSprite);
-        
+    
         Debug.Log($"拾取物品: {itemData.itemName} (ID: {itemData.itemID})，当前物品数: {inventoryItems.Count}");
     }
     
     // 创建物品槽UI
     void CreateItemSlot(ItemData itemData, Sprite itemSprite)
+{
+    if (inventoryPanel == null)
     {
-        if (inventoryPanel == null)
-        {
-            Debug.LogError("InventoryPanel未指定！");
-            return;
-        }
-        
-        if (itemSlotPrefab == null)
-        {
-            Debug.LogError("ItemSlotPrefab未指定！");
-            return;
-        }
-        
-        // 创建新的物品槽
-        GameObject newSlot = Instantiate(itemSlotPrefab, inventoryPanel);
-        
-        // 命名以便识别
-        newSlot.name = $"ItemSlot_{inventoryItems.Count:00}_{itemData.itemName}";
-        
-        // 添加到列表
-        itemSlots.Add(newSlot);
-        
-        // 设置位置
-        RectTransform slotRect = newSlot.GetComponent<RectTransform>();
-        if (slotRect != null)
-        {
-            float yPosition = -slotSpacing * (inventoryItems.Count - 1);
-            slotRect.anchoredPosition = new Vector2(0, yPosition);
-        }
-        
-        // 查找并设置图标
-        Image iconImage = FindChildComponent<Image>(newSlot, "Icon", true);
-        if (iconImage != null && itemSprite != null)
-        {
-            iconImage.sprite = itemSprite;
-            iconImage.color = Color.white;
-            iconImage.preserveAspect = true;
-        }
+        Debug.LogError("InventoryPanel未指定！");
+        return;
+    }
+    
+    if (itemSlotPrefab == null)
+    {
+        Debug.LogError("ItemSlotPrefab未指定！");
+        return;
+    }
+    
+    // 创建新的物品槽
+    GameObject newSlot = Instantiate(itemSlotPrefab, inventoryPanel);
+    newSlot.name = $"ItemSlot_{inventoryItems.Count:00}_{itemData.itemName}";
+    itemSlots.Add(newSlot);
+    
+    // 设置位置
+    RectTransform slotRect = newSlot.GetComponent<RectTransform>();
+    if (slotRect != null)
+    {
+        float yPosition = -slotSpacing * (inventoryItems.Count - 1);
+        slotRect.anchoredPosition = new Vector2(0, yPosition);
+    }
+    
+    // 查找并设置图标 - 优先使用传入的sprite，如果为null则从字典获取
+    Sprite iconToUse = itemSprite;
+    if (iconToUse == null && itemIconDictionary.ContainsKey(itemData.itemID))
+    {
+        iconToUse = itemIconDictionary[itemData.itemID];
+        Debug.Log($"从字典恢复图标: {itemData.itemName}");
+    }
+    
+    Image iconImage = FindChildComponent<Image>(newSlot, "Icon", true);
+    if (iconImage != null)
+    {
+        iconImage.sprite = iconToUse;
+        iconImage.color = (iconToUse != null) ? Color.white : new Color(1, 1, 1, 0.5f); // 没图标就半透明白色
+        iconImage.preserveAspect = true;
+    }
         
         // 设置物品名称 - 针对TextMeshProUGUI组件
         Transform nameTextTransform = newSlot.transform.Find("ItemName");
@@ -228,4 +309,14 @@ public class InventoryManager : MonoBehaviour
         ClearInventoryUI();
         Debug.Log("背包已清空");
     }
-}
+    // ========== 在脚本末尾添加这个方法 ==========
+    // 重要：在脚本被销毁时取消事件订阅，避免内存泄漏
+    void OnDestroy()
+    {
+        if (Instance == this)
+        {
+            SceneManager.sceneLoaded -= OnSceneLoaded;
+        }
+    }
+    // ========== 新增结束 ==========
+}   // 注意：这行是你的类本身的右大括号，应该已经存在，不要重复添加。
