@@ -687,7 +687,7 @@ MonoBehaviour:
     height: 7.5
   hasLock: 1
   requiredKeyID: 1001
-  lockedHintSprite: {fileID: 21300000, guid: 7e01cb044e8917741ad44402f6aab498, type: 3}
+  lockedHintSprite: {fileID: 21300000, guid: e57e100ab10fd95418f0fee959cb52cf, type: 3}
   playerTeleporter: {fileID: 1279283357}
 --- !u!1001 &767598981
 PrefabInstance:
