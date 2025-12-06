@@ -51,6 +51,13 @@ public class NPCDialogue2D : MonoBehaviour
     public float typewriterSpeed = 0.05f;
     public AudioClip typeSound;
 
+    [Header("对话奖励设置")]
+    public bool givesReward = false; // 是否给予奖励
+    public int rewardItemID = 1002; // 奖励的物品ID（你要的钥匙ID）
+    public string rewardItemName = "Key2"; // 奖励物品名称（用于日志）
+    public Sprite rewardItemIcon; // 奖励物品的图标（需要在Unity中拖拽一个图片资源）
+    private bool hasGivenReward = false; // 记录奖励是否已经给过
+
     // ========== 新增：电视和茶几的交互功能 ==========
     [Header("电视/茶几交互设置")]
     public bool isTV = false;           // 是否为电视
@@ -477,7 +484,38 @@ public class NPCDialogue2D : MonoBehaviour
             ShowInteractionHint(true);
         }
 
+        // 发放奖励的逻辑（新增）
+        if (givesReward && !hasGivenReward)
+        {
+            GiveReward();
+        }
+
         currentIndex = 0;
+    }
+
+    // 给予玩家奖励的方法
+    private void GiveReward()
+    {
+        if (InventoryManager.Instance != null)
+        {
+            // 创建临时的物品数据
+            ItemData rewardData = new ItemData();
+            rewardData.itemID = rewardItemID;
+            rewardData.itemName = rewardItemName;
+            rewardData.description = "从对话中获得的" + rewardItemName;
+
+            // 添加到背包
+            InventoryManager.Instance.AddItem(rewardData, rewardItemIcon);
+        
+            // 标记奖励已发放，防止重复获得
+            hasGivenReward = true;
+        
+            Debug.Log($"<color=yellow>获得奖励: {rewardItemName} (ID: {rewardItemID})</color>");
+        }
+        else
+        {
+            Debug.LogWarning("奖励发放失败：背包管理器(InventoryManager)不存在。");
+        }
     }
 
     // 新增：检查是否需要切换场景
