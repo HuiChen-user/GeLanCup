@@ -1,26 +1,28 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.SceneManagement; // ÓÃÓÚ³¡¾°ÇÐ»»
-using UnityEngine.UI; // ÓÃÓÚ²Ù×÷UIÍ¼Æ¬
+using UnityEngine.SceneManagement; // ï¿½ï¿½ï¿½Ú³ï¿½ï¿½ï¿½ï¿½Ð»ï¿½
+using UnityEngine.UI; // ï¿½ï¿½ï¿½Ú²ï¿½ï¿½ï¿½UIÍ¼Æ¬
 
 
 public class MainMenuManager : MonoBehaviour
 {
-    [Header("°´Å¥ÉèÖÃ")]
-    public Button startButton;      // ¿ªÊ¼ÓÎÏ·°´Å¥
-    public Button creditsButton;    // ÖÆ×÷Ãûµ¥°´Å¥
-    public Button quitButton;       // ÍË³öÓÎÏ·°´Å¥
+    [Header("ï¿½ï¿½Å¥ï¿½ï¿½ï¿½ï¿½")]
+    public Button startButton;      // ï¿½ï¿½Ê¼ï¿½ï¿½Ï·ï¿½ï¿½Å¥
+    public Button creditsButton;    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å¥
+    public Button quitButton;       // ï¿½Ë³ï¿½ï¿½ï¿½Ï·ï¿½ï¿½Å¥
 
-    [Header("ÖÆ×÷Ãûµ¥ÏÔÊ¾")]
-    public Image creditsImage;      // ÄãµÄÖÆ×÷Ãûµ¥Í¼Æ¬£¨Ò»¸öImage×é¼þ£©
-    public float fadeDuration = 0.5f; // Ãûµ¥µ­Èëµ­³öÊ±¼ä
+    [Header("ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¾")]
+    public Image creditsImage;
 
-    private bool isCreditsShowing = false; // ·ÀÖ¹ÖØ¸´µã»÷
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¼Æ¬ï¿½ï¿½Ò»ï¿½ï¿½Imageï¿½ï¿½ï¿½ï¿½ï¿½
+    public float fadeDuration = 0.5f; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ëµ­ï¿½ï¿½Ê±ï¿½ï¿½
+
+    private bool isCreditsShowing = false; // ï¿½ï¿½Ö¹ï¿½Ø¸ï¿½ï¿½ï¿½ï¿½
 
     void Start()
     {
-        // 1. °ó¶¨°´Å¥µã»÷ÊÂ¼þ
+        // 1. ï¿½ó¶¨°ï¿½Å¥ï¿½ï¿½ï¿½ï¿½Â¼ï¿½
         if (startButton != null)
             startButton.onClick.AddListener(OnStartClicked);
         
@@ -30,42 +32,42 @@ public class MainMenuManager : MonoBehaviour
         if (quitButton != null)
             quitButton.onClick.AddListener(OnQuitClicked);
 
-        // 2. ³õÊ¼»¯ÖÆ×÷Ãûµ¥ÎªÒþ²Ø×´Ì¬
+        // 2. ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îªï¿½ï¿½ï¿½ï¿½×´Ì¬
         if (creditsImage != null)
         {
             Color color = creditsImage.color;
-            color.a = 0; // ÍêÈ«Í¸Ã÷
+            color.a = 0; // ï¿½ï¿½È«Í¸ï¿½ï¿½
             creditsImage.color = color;
-            creditsImage.raycastTarget = false; // Í¸Ã÷Ê±²»½ÓÊÜµã»÷
-            creditsImage.gameObject.SetActive(false); // ÏÈ½ûÓÃ£¬ÐÔÄÜ¸üºÃ
+            creditsImage.raycastTarget = false; // Í¸ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½Üµï¿½ï¿½
+            creditsImage.gameObject.SetActive(false); // ï¿½È½ï¿½ï¿½Ã£ï¿½ï¿½ï¿½ï¿½Ü¸ï¿½ï¿½ï¿½
         }
 
-        Debug.Log("Ö÷²Ëµ¥³õÊ¼»¯Íê³É¡£");
+        Debug.Log("ï¿½ï¿½ï¿½Ëµï¿½ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½É¡ï¿½");
     }
 
-    // ¿ªÊ¼ÓÎÏ·°´Å¥
+    // ï¿½ï¿½Ê¼ï¿½ï¿½Ï·ï¿½ï¿½Å¥
     void OnStartClicked()
     {
-        Debug.Log("µã»÷ÁË¡¾¿ªÊ¼ÓÎÏ·¡¿");
-        // ÕâÀï¼ÓÔØÄãµÄµÚÒ»¸öÓÎÏ·³¡¾°£¬Ãû×ÖÐèÒªºÍÄãBuild SettingsÀïµÄÒ»ÖÂ
-        SceneManager.LoadScene("¿ªÊ¼"); // Çë½«"Room1"¸Ä³ÉÄãµÚÒ»¸ö·¿¼äµÄ³¡¾°Ãû
+        Debug.Log("ï¿½ï¿½ï¿½ï¿½Ë¡ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½Ï·ï¿½ï¿½");
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Äµï¿½Ò»ï¿½ï¿½ï¿½ï¿½Ï·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½ï¿½Build Settingsï¿½ï¿½ï¿½Ò»ï¿½ï¿½
+        SceneManager.LoadScene("ï¿½ï¿½Ê¼"); // ï¿½ë½«"Room1"ï¿½Ä³ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä³ï¿½ï¿½ï¿½ï¿½ï¿½
     }
 
-    // ÖÆ×÷Ãûµ¥°´Å¥
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å¥
     void OnCreditsClicked()
     {
         if (isCreditsShowing || creditsImage == null) return;
         
-        Debug.Log("µã»÷ÁË¡¾ÖÆ×÷Ãûµ¥¡¿");
+        Debug.Log("ï¿½ï¿½ï¿½ï¿½Ë¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½");
         ShowCredits(true);
     }
 
-    // ÍË³öÓÎÏ·°´Å¥
+    // ï¿½Ë³ï¿½ï¿½ï¿½Ï·ï¿½ï¿½Å¥
     void OnQuitClicked()
     {
-        Debug.Log("µã»÷ÁË¡¾ÍË³öÓÎÏ·¡¿");
+        Debug.Log("ï¿½ï¿½ï¿½ï¿½Ë¡ï¿½ï¿½Ë³ï¿½ï¿½ï¿½Ï·ï¿½ï¿½");
         
-        // ÔÚUnity±à¼­Æ÷Àï»áÍ£Ö¹ÔËÐÐ£¬ÔÚ´ò°üºóµÄÓÎÏ·Àï»áÍË³öÓ¦ÓÃ
+        // ï¿½ï¿½Unityï¿½à¼­ï¿½ï¿½ï¿½ï¿½ï¿½Í£Ö¹ï¿½ï¿½ï¿½Ð£ï¿½ï¿½Ú´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï·ï¿½ï¿½ï¿½ï¿½Ë³ï¿½Ó¦ï¿½ï¿½
         #if UNITY_EDITOR
             UnityEditor.EditorApplication.isPlaying = false;
         #else
@@ -73,31 +75,32 @@ public class MainMenuManager : MonoBehaviour
         #endif
     }
 
-    // ºËÐÄ£ºÏÔÊ¾/Òþ²ØÖÆ×÷Ãûµ¥£¨´ø¼òÒ×µ­ÈëÐ§¹û£©
+    // ï¿½ï¿½ï¿½Ä£ï¿½ï¿½ï¿½Ê¾/ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×µï¿½ï¿½ï¿½Ð§ï¿½ï¿½ï¿½ï¿½
     void ShowCredits(bool show)
     {
         isCreditsShowing = true;
-        creditsImage.gameObject.SetActive(true); // ÏÈ¼¤»îÎïÌå
+        creditsImage.gameObject.SetActive(true);
+        // ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         
-        // Ä¿±êÍ¸Ã÷¶È
+        // Ä¿ï¿½ï¿½Í¸ï¿½ï¿½ï¿½ï¿½
         float targetAlpha = show ? 1f : 0f;
         Color currentColor = creditsImage.color;
         currentColor.a = targetAlpha;
         
-        // ÕâÀïÊ¹ÓÃ¼òµ¥µÄÖ±½ÓÉèÖÃ£¬Èç¹ûÐèÒª¸üÆ½»¬µÄµ­Èëµ­³ö¿ÉÒÔÓÃÐ­³Ì£¨ÉÔ¸´ÔÓÒ»µã£©
+        // ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½Ã¼òµ¥µï¿½Ö±ï¿½ï¿½ï¿½ï¿½ï¿½Ã£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½Æ½ï¿½ï¿½ï¿½Äµï¿½ï¿½ëµ­ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð­ï¿½Ì£ï¿½ï¿½Ô¸ï¿½ï¿½ï¿½Ò»ï¿½ã£©
         creditsImage.color = currentColor;
-        creditsImage.raycastTarget = show; // ÏÔÊ¾Ê±²ÅÄÜ±»µã»÷¹Ø±Õ
+        creditsImage.raycastTarget = show; // ï¿½ï¿½Ê¾Ê±ï¿½ï¿½ï¿½Ü±ï¿½ï¿½ï¿½ï¿½ï¿½Ø±ï¿½
         
         if (show)
         {
-            // µ±Ãûµ¥ÏÔÊ¾Ê±£¬µã»÷Ãûµ¥ÈÎÒâ´¦¹Ø±ÕËü
-            // ×¢Òâ£ºÐèÒª¸øcreditsImageËùÔÚµÄGameObjectÌí¼ÓÒ»¸öButton×é¼þÀ´½ÓÊÕµã»÷
+            // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¾Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½â´¦ï¿½Ø±ï¿½ï¿½ï¿½
+            // ×¢ï¿½â£ºï¿½ï¿½Òªï¿½ï¿½creditsImageï¿½ï¿½ï¿½Úµï¿½GameObjectï¿½ï¿½ï¿½Ò»ï¿½ï¿½Buttonï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Õµï¿½ï¿½
             Button creditsBtn = creditsImage.GetComponent<Button>();
             if (creditsBtn == null) creditsBtn = creditsImage.gameObject.AddComponent<Button>();
             creditsBtn.onClick.RemoveAllListeners();
             creditsBtn.onClick.AddListener(() => ShowCredits(false));
         }
         
-        isCreditsShowing = !show; // ²Ù×÷½áÊøºóÖØÖÃ×´Ì¬
+        isCreditsShowing = !show; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
     }
 }
