@@ -50,7 +50,7 @@ public class MainMenuManager : MonoBehaviour
     {
         Debug.Log("����ˡ���ʼ��Ϸ��");
         // ���������ĵ�һ����Ϸ������������Ҫ����Build Settings���һ��
-        SceneManager.LoadScene("��ʼ"); // �뽫"Room1"�ĳ����һ������ĳ�����
+        SceneManager.LoadScene("开始"); // �뽫"Room1"�ĳ����һ������ĳ�����
     }
 
     // ����������ť
