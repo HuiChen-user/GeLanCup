@@ -549,44 +549,62 @@ public class PlayerCenteredUnlockSystem_Testable : MonoBehaviour
     }
     
     // 真实模式：添加到背包系统
-    void GiveRewardToPlayer_Real()
+void GiveRewardToPlayer_Real()
+{
+    // 1. 优先使用 Inspector 中手动指定的引用
+    if (inventoryManager == null)
     {
-        if (inventoryManager != null)
+        // 2. 如果为空，尝试通过单例获取
+        inventoryManager = InventoryManager.Instance;
+    }
+    
+    // 3. 如果单例也为空（可能还没初始化），尝试在场景中查找
+    if (inventoryManager == null)
+    {
+        inventoryManager = FindObjectOfType<InventoryManager>();
+    }
+    
+    // 4. 如果找到了背包管理器
+    if (inventoryManager != null)
+    {
+        try
         {
-            try
+            ItemData newItem = new ItemData();
+            newItem.itemName = rewardItemName;
+            newItem.description = $"通过密码锁获得的{rewardItemName}";
+            
+            // 解析物品ID
+            int itemId;
+            if (int.TryParse(rewardItemID, out itemId))
             {
-                ItemData newItem = new ItemData();
-                newItem.itemName = rewardItemName;
-                newItem.description = $"通过密码锁获得的{rewardItemName}";
-                
-                if (int.TryParse(rewardItemID, out int itemId))
-                {
-                    newItem.itemID = itemId;
-                }
-                else
-                {
-                    newItem.itemID = rewardItemID.GetHashCode();
-                }
-                
-                inventoryManager.AddItem(newItem, rewardItemIcon);
-                
-                if (showDebugLogs)
-                {
-                    Debug.Log($"<color=yellow>[背包系统] 获得: {rewardItemName} (ID: {newItem.itemID}) ×{rewardAmount}</color>");
-                }
+                newItem.itemID = itemId;
             }
-            catch (System.Exception e)
+            else
             {
-                Debug.LogError($"添加到背包失败: {e.Message}");
-                GiveRewardToPlayer_Test();
+                Debug.LogWarning($"rewardItemID '{rewardItemID}' 不是纯数字，使用哈希值作为ID");
+                newItem.itemID = rewardItemID.GetHashCode();
+            }
+            
+            // 添加到背包
+            inventoryManager.AddItem(newItem, rewardItemIcon);
+            
+            if (showDebugLogs)
+            {
+                Debug.Log($"<color=yellow>[背包系统] 获得: {rewardItemName} (ID: {newItem.itemID}) ×{rewardAmount}</color>");
             }
         }
-        else
+        catch (System.Exception e)
         {
-            Debug.LogWarning("背包系统未找到，使用测试模式");
-            GiveRewardToPlayer_Test();
+            Debug.LogError($"添加到背包失败: {e.Message}");
+            GiveRewardToPlayer_Test(); // 降级到测试模式
         }
     }
+    else
+    {
+        Debug.LogWarning("背包系统未找到，使用测试模式");
+        GiveRewardToPlayer_Test();
+    }
+}
     
     // 显示测试背包内容
     void ShowTestInventory()
