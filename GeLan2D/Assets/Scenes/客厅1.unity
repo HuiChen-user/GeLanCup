@@ -483,7 +483,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_Sprite: {fileID: 7482667652216324306, guid: 311925a002f4447b3a28927169b83ea6, type: 3}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -1641,6 +1641,10 @@ MonoBehaviour:
   useTypewriterEffect: 1
   typewriterSpeed: 0.05
   typeSound: {fileID: 0}
+  givesReward: 0
+  rewardItemID: 1002
+  rewardItemName: Key2
+  rewardItemIcon: {fileID: 0}
   isTV: 0
   isCoffeeTable: 1
   beforeObject: {fileID: 331682356}
@@ -1824,7 +1828,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   hiddenObject: {fileID: 810593759}
-  completionSound: {fileID: 0}
+  completionSound: {fileID: 8300000, guid: fff34f541975ae14083c07de5fae7287, type: 3}
   soundVolume: 1
   tvObject: {fileID: 2058187665}
   otherObject: {fileID: 1154507726}
@@ -2278,6 +2282,10 @@ MonoBehaviour:
   useTypewriterEffect: 1
   typewriterSpeed: 0.05
   typeSound: {fileID: 0}
+  givesReward: 0
+  rewardItemID: 1002
+  rewardItemName: Key2
+  rewardItemIcon: {fileID: 0}
   isTV: 0
   isCoffeeTable: 0
   beforeObject: {fileID: 0}
@@ -2569,6 +2577,10 @@ MonoBehaviour:
   useTypewriterEffect: 1
   typewriterSpeed: 0.05
   typeSound: {fileID: 0}
+  givesReward: 0
+  rewardItemID: 1002
+  rewardItemName: Key2
+  rewardItemIcon: {fileID: 0}
   isTV: 0
   isCoffeeTable: 0
   beforeObject: {fileID: 0}
@@ -2660,6 +2672,134 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
+--- !u!1 &1550707016
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1550707018}
+  - component: {fileID: 1550707017}
+  m_Layer: 0
+  m_Name: AmbientSound_Global
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!82 &1550707017
+AudioSource:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1550707016}
+  m_Enabled: 1
+  serializedVersion: 4
+  OutputAudioMixerGroup: {fileID: 0}
+  m_audioClip: {fileID: 8300000, guid: a98e309bb996d6449b85065cafcc8335, type: 3}
+  m_PlayOnAwake: 1
+  m_Volume: 1
+  m_Pitch: 1
+  Loop: 1
+  Mute: 0
+  Spatialize: 0
+  SpatializePostEffects: 0
+  Priority: 128
+  DopplerLevel: 1
+  MinDistance: 1
+  MaxDistance: 500
+  Pan2D: 0
+  rolloffMode: 0
+  BypassEffects: 0
+  BypassListenerEffects: 0
+  BypassReverbZones: 0
+  rolloffCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  panLevelCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  spreadCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  reverbZoneMixCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+--- !u!4 &1550707018
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1550707016}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.9240436, y: 0.16283658, z: -0.039987415}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1642893722
 GameObject:
   m_ObjectHideFlags: 0
@@ -3218,6 +3358,10 @@ MonoBehaviour:
   useTypewriterEffect: 1
   typewriterSpeed: 0.05
   typeSound: {fileID: 0}
+  givesReward: 0
+  rewardItemID: 1002
+  rewardItemName: Key2
+  rewardItemIcon: {fileID: 0}
   isTV: 1
   isCoffeeTable: 0
   beforeObject: {fileID: 331682356}
@@ -3347,3 +3491,4 @@ SceneRoots:
   - {fileID: 126335202}
   - {fileID: 1427585389}
   - {fileID: 185619769}
+  - {fileID: 1550707018}

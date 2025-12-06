@@ -948,7 +948,7 @@ MonoBehaviour:
   objectsToReveal:
   - {fileID: 1106530584}
   - {fileID: 1099865845}
-  switchSound: {fileID: 0}
+  switchSound: {fileID: 8300000, guid: 1c87d9673c0d95f4190e07380a7fc3be, type: 3}
   canBeTurnedOff: 0
   isUsed: 0
 --- !u!61 &1037633726
