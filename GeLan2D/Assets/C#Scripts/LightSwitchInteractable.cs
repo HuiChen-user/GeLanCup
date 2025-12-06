@@ -2,24 +2,25 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class LightSwitchInteractable : Interactable // ¼Ì³Ð×ÔÄãµÄ Interactable »ùÀà
+public class LightSwitchInteractable : Interactable // ï¿½Ì³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ Interactable ï¿½ï¿½ï¿½ï¿½
 {
-    [Header("µÆ¹â¿ØÖÆ¶ÔÏó")]
-    public GameObject lightGroup; // ÍÏ×§ÄãHierarchyÖÐ´ú±í¡°µÆ¹â¡±µÄ¸¸¶ÔÏó»òµ¥¸öÎïÌå
-    public GameObject[] objectsToReveal; // Ò»¸öÊý×é£¬ÓÃÓÚ´æ·ÅÁíÍâÁ½¸öÐèÒªÏÔÊ¾µÄÎïÌå
+    [Header("ï¿½Æ¹ï¿½ï¿½ï¿½Æ¶ï¿½ï¿½ï¿½")]
+    public GameObject lightGroup; // ï¿½ï¿½×§ï¿½ï¿½Hierarchyï¿½Ð´ï¿½ï¿½ï¿½ï¿½Æ¹â¡±ï¿½Ä¸ï¿½ï¿½ï¿½ï¿½ï¿½òµ¥¸ï¿½ï¿½ï¿½ï¿½ï¿½
+    public GameObject[] objectsToReveal; // Ò»ï¿½ï¿½ï¿½ï¿½ï¿½é£¬ï¿½ï¿½ï¿½Ú´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
-    [Header("ÒôÆµÉèÖÃ")]
-    public AudioClip switchSound; // ¿ªµÆÊ±²¥·ÅµÄÒôÐ§Æ¬¶Î
-    private AudioSource audioSource; // ÓÃÓÚ²¥·ÅÒôÐ§µÄ×é¼þ
+    
+    [Header("ï¿½ï¿½Æµï¿½ï¿½ï¿½ï¿½")]
+    public AudioClip switchSound; // ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½Åµï¿½ï¿½ï¿½Ð§Æ¬ï¿½ï¿½
+    private AudioSource audioSource; // ï¿½ï¿½ï¿½Ú²ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½ï¿½ï¿½ï¿½ï¿½
 
-    [Header("¿ª¹Ø×´Ì¬")]
-    public bool canBeTurnedOff = false; // ÊÇ·ñÔÊÐíÔÙ´Î°´E¹ØµÆ£¿Ä¬ÈÏÖ»ÄÜ¿ªÒ»´Î
-    private bool isLightOn = false; // ¼ÇÂ¼µ±Ç°µÆµÄ×´Ì¬
-    public bool isUsed = false; // ¿ª¹ØÊÇ·ñÒÑ±»Ê¹ÓÃ¹ý£¨Èç¹ûÖ»ÄÜ¿ªÒ»´Î£©
+    [Header("ï¿½ï¿½ï¿½ï¿½×´Ì¬")]
+    public bool canBeTurnedOff = false; // ï¿½Ç·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ù´Î°ï¿½Eï¿½ØµÆ£ï¿½Ä¬ï¿½ï¿½Ö»ï¿½Ü¿ï¿½Ò»ï¿½ï¿½
+    private bool isLightOn = false; // ï¿½ï¿½Â¼ï¿½ï¿½Ç°ï¿½Æµï¿½×´Ì¬
+    public bool isUsed = false; // ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½Ñ±ï¿½Ê¹ï¿½Ã¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö»ï¿½Ü¿ï¿½Ò»ï¿½Î£ï¿½
 
     void Start()
     {
-        // 1. È·±£³õÊ¼×´Ì¬£ºµÆºÍÒªÏÔÊ¾µÄÎïÌå¶¼ÊÇÒþ²ØµÄ
+        // 1. È·ï¿½ï¿½ï¿½ï¿½Ê¼×´Ì¬ï¿½ï¿½ï¿½Æºï¿½Òªï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½å¶¼ï¿½ï¿½ï¿½ï¿½ï¿½Øµï¿½
         if (lightGroup != null)
         {
             lightGroup.SetActive(false);
@@ -29,43 +30,44 @@ public class LightSwitchInteractable : Interactable // ¼Ì³Ð×ÔÄãµÄ Interactable »
             if (obj != null) obj.SetActive(false);
         }
 
-        // 2. »ñÈ¡»ò´´½¨AudioSource×é¼þÓÃÓÚ²¥·ÅÒôÐ§
+        // 2. ï¿½ï¿½È¡ï¿½ò´´½ï¿½AudioSourceï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú²ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
         audioSource = GetComponent<AudioSource>();
         if (audioSource == null)
         {
-            // Èç¹û¿ª¹ØÎïÌå±¾ÉíÃ»ÓÐAudioSource£¬¾Í×Ô¶¯Ìí¼ÓÒ»¸ö
+            // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½å±¾ï¿½ï¿½Ã»ï¿½ï¿½AudioSourceï¿½ï¿½ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½
             audioSource = gameObject.AddComponent<AudioSource>();
             audioSource.playOnAwake = false;
-            audioSource.volume = 0.7f; // ÉèÖÃÒ»¸öºÏÊÊµÄÄ¬ÈÏÒôÁ¿
+            audioSource.volume = 0.7f; // ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½Êµï¿½Ä¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         }
-        Debug.Log("µÆ¹â¿ª¹Ø³õÊ¼»¯Íê³É£¬³õÊ¼×´Ì¬£º¹Ø±Õ¡£");
+        Debug.Log("ï¿½Æ¹â¿ªï¿½Ø³ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½É£ï¿½ï¿½ï¿½Ê¼×´Ì¬ï¿½ï¿½ï¿½Ø±Õ¡ï¿½");
     }
 
-    // ºËÐÄ£ºµ±Íæ¼ÒÔÚ·¶Î§ÄÚ°´ÏÂEÊ±£¬ÓÉ»ùÀà×Ô¶¯µ÷ÓÃ
+    // ï¿½ï¿½ï¿½Ä£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú·ï¿½Î§ï¿½Ú°ï¿½ï¿½ï¿½EÊ±ï¿½ï¿½ï¿½É»ï¿½ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½
     protected override void OnInteract()
     {
-        // Èç¹û¿ª¹ØÖ»ÄÜÊ¹ÓÃÒ»´ÎÇÒÒÑ±»Ê¹ÓÃ£¬ÔòÖ±½Ó·µ»Ø
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö»ï¿½ï¿½Ê¹ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½Ñ±ï¿½Ê¹ï¿½Ã£ï¿½ï¿½ï¿½Ö±ï¿½Ó·ï¿½ï¿½ï¿½
         if (!canBeTurnedOff && isUsed) return;
 
-        // ÇÐ»»µÆ¹â×´Ì¬
+        
+        // ï¿½Ð»ï¿½ï¿½Æ¹ï¿½×´Ì¬
         ToggleLight();
     }
 
-    // ÇÐ»»µÆ¹âÏÔÊ¾/Òþ²ØµÄ·½·¨
+    // ï¿½Ð»ï¿½ï¿½Æ¹ï¿½ï¿½ï¿½Ê¾/ï¿½ï¿½ï¿½ØµÄ·ï¿½ï¿½ï¿½
     void ToggleLight()
     {
-        // ·´×ª×´Ì¬
+        // ï¿½ï¿½×ª×´Ì¬
         isLightOn = !isLightOn;
         isUsed = true;
 
-        // 1. ¿ØÖÆÖ÷µÆ¹â
+        // 1. ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ¹ï¿½
         if (lightGroup != null)
         {
             lightGroup.SetActive(isLightOn);
-            Debug.Log($"Ö÷µÆ¹â {(isLightOn ? "¿ªÆô" : "¹Ø±Õ")}");
+            Debug.Log($"ï¿½ï¿½ï¿½Æ¹ï¿½ {(isLightOn ? "ï¿½ï¿½ï¿½ï¿½" : "ï¿½Ø±ï¿½")}");
         }
 
-        // 2. ¿ØÖÆÆäËûÐèÒªÁª¶¯µÄÎïÌå
+        // 2. ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         foreach (GameObject obj in objectsToReveal)
         {
             if (obj != null)
@@ -74,38 +76,38 @@ public class LightSwitchInteractable : Interactable // ¼Ì³Ð×ÔÄãµÄ Interactable »
             }
         }
 
-        // 3. ²¥·ÅÒôÐ§£¨Ö»ÔÚ¿ªµÆÊ±²¥·Å£¬»òÕß¸ù¾ÝÉè¼Æµ÷Õû£©
+        // 3. ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½ï¿½Ö»ï¿½Ú¿ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½Å£ï¿½ï¿½ï¿½ï¿½ß¸ï¿½ï¿½ï¿½ï¿½ï¿½Æµï¿½ï¿½ï¿½ï¿½ï¿½
         if (isLightOn && switchSound != null && audioSource != null)
         {
             audioSource.PlayOneShot(switchSound);
-            Debug.Log("²¥·Å¿ªµÆÒôÐ§");
+            Debug.Log("ï¿½ï¿½ï¿½Å¿ï¿½ï¿½ï¿½ï¿½ï¿½Ð§");
         }
         else if (!isLightOn && switchSound != null && audioSource != null)
         {
-            // Èç¹ûÄãÓÐ¹ØµÆÒôÐ§£¬¿ÉÒÔÔÚÕâÀï²¥·Å
+            // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¹Øµï¿½ï¿½ï¿½Ð§ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï²¥ï¿½ï¿½
             // audioSource.PlayOneShot(switchOffSound);
         }
 
-        // 4. Èç¹û¿ª¹ØÖ»ÄÜ¿ªÒ»´Î£¬Ê¹ÓÃºó¿ÉÒÔÒþ²Ø½»»¥ÌáÊ¾²¢½ûÓÃÅö×²Ìå
+        // 4. ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö»ï¿½Ü¿ï¿½Ò»ï¿½Î£ï¿½Ê¹ï¿½Ãºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ø½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×²ï¿½ï¿½
         if (!canBeTurnedOff && isUsed)
         {
-            Debug.Log("¿ª¹ØÒÑÊ¹ÓÃ£¬½ûÓÃºóÐø½»»¥¡£");
-            // Òþ²Øµ±Ç°µÄ½»»¥ÌáÊ¾
+            Debug.Log("ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½Ã£ï¿½ï¿½ï¿½ï¿½Ãºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½");
+            // ï¿½ï¿½ï¿½Øµï¿½Ç°ï¿½Ä½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¾
             if (InteractionHintManager.Instance != null)
             {
                 InteractionHintManager.Instance.HideHint();
             }
-            // ½ûÓÃ´¥·¢Æ÷£¬·ÀÖ¹ÔÙ´Î½»»¥
+            // ï¿½ï¿½ï¿½Ã´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¹ï¿½Ù´Î½ï¿½ï¿½ï¿½
             Collider2D col = GetComponent<Collider2D>();
             if (col != null) col.enabled = false;
         }
     }
 
-    // ¿ÉÑ¡£ºÔÚ±à¼­Æ÷ÖÐ¿ÉÊÓ»¯½»»¥·¶Î§
+    // ï¿½ï¿½Ñ¡ï¿½ï¿½ï¿½Ú±à¼­ï¿½ï¿½ï¿½Ð¿ï¿½ï¿½Ó»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î§
     void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.yellow;
-        // ¼ÙÉèÄãµÄ´¥·¢Æ÷ÊÇÒ»¸öBoxCollider2D
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½BoxCollider2D
         BoxCollider2D collider = GetComponent<BoxCollider2D>();
         if (collider != null && collider.isTrigger)
         {
