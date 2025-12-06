@@ -15,6 +15,11 @@ public class CrossSceneDoor : Interactable // 继承你的交互基类
     public int requiredKeyID = 1001;         // 需要的钥匙ID
     public Sprite lockedHintSprite;          // 锁住时显示的图标
 
+    [Header("=== 音效设置 ===")]
+    public AudioClip openSound;              // 开门/传送音效
+    public AudioClip lockedSound;            // 门锁住时的音效（可选）
+    private AudioSource audioSource;         // 用于播放音效的组件
+
     [Header("=== 本地组件引用 ===")]
     public RoomTeleporter playerTeleporter;  // 拖拽玩家身上的RoomTeleporter脚本到这里
 
@@ -43,6 +48,23 @@ public class CrossSceneDoor : Interactable // 继承你的交互基类
             GameObject player = GameObject.FindGameObjectWithTag("Player");
             if (player != null) playerTeleporter = player.GetComponent<RoomTeleporter>();
         }
+
+        // 4. 初始化音频组件
+        InitializeAudio();
+    }
+
+    // 初始化音频组件
+    void InitializeAudio()
+    {
+        audioSource = GetComponent<AudioSource>();
+        if (audioSource == null)
+        {
+            audioSource = gameObject.AddComponent<AudioSource>();
+        }
+        audioSource.playOnAwake = false;
+        audioSource.volume = 0.7f;
+        audioSource.spatialBlend = 1.0f; // 3D音效
+        audioSource.maxDistance = 10f;
     }
 
     // 核心交互逻辑
@@ -55,15 +77,20 @@ public class CrossSceneDoor : Interactable // 继承你的交互基类
         {
             if (!CheckKey())
             {
+                // 门锁住时播放锁住音效
+                PlaySound(lockedSound);
                 StartCoroutine(ShowLockedHint());
                 return;
             }
             // 有钥匙，永久解锁
             DoorLockManager.UnlockDoor(thisDoorID);
-            hasLock = false; // 本地也标记为无锁
+            hasLock = false;
         }
 
-        // 2. 执行传送
+        // 2. 播放开门音效
+        PlaySound(openSound);
+
+        // 3. 执行传送
         StartCoroutine(InitiateSceneTransition());
     }
 
@@ -84,7 +111,7 @@ public class CrossSceneDoor : Interactable // 继承你的交互基类
         return false;
     }
 
-    // 显示锁住提示（复用你原有逻辑）
+    // 显示锁住提示
     IEnumerator ShowLockedHint()
     {
         if (InteractionHintManager.Instance != null && lockedHintSprite != null)
@@ -93,6 +120,20 @@ public class CrossSceneDoor : Interactable // 继承你的交互基类
             InteractionHintManager.Instance.ShowHint(lockedHintSprite);
             yield return new WaitForSeconds(1.5f);
             if (playerInRange) InteractionHintManager.Instance.ShowHint(originalSprite);
+        }
+    }
+
+    // 播放音效的通用方法
+    void PlaySound(AudioClip clip)
+    {
+        if (clip != null && audioSource != null)
+        {
+            audioSource.PlayOneShot(clip);
+            Debug.Log($"播放音效: {clip.name}");
+        }
+        else if (clip == null && audioSource != null)
+        {
+            Debug.LogWarning("未指定音效文件！");
         }
     }
 
@@ -123,9 +164,6 @@ public class CrossSceneDoor : Interactable // 继承你的交互基类
     // 方案A：复用玩家身上现成的RoomTeleporter组件（推荐）
     IEnumerator UsePlayerTeleporter()
     {
-        // 关键：临时修改玩家RoomTeleporter的目标，骗它执行一次“同场景传送”
-        // 但我们会在黑屏后拦截，改为加载新场景
-
         // 1. 先让RoomTeleporter开始淡出黑屏
         if (playerTeleporter.fadeOverlay != null)
         {
@@ -209,7 +247,7 @@ public class CrossSceneDoor : Interactable // 继承你的交互基类
         GameObject player = GameObject.FindGameObjectWithTag("Player");
         if (player != null) player.transform.position = targetSpawnPosition;
 
-        // 淡入（在新场景中也需要一个淡入效果，这里需要额外处理，为了简单先直接恢复）
+        // 淡入
         img.color = new Color(0, 0, 0, 1);
         yield return StartCoroutine(FadeScreen(img, 1f, 0f, 0.5f));
 
@@ -217,7 +255,7 @@ public class CrossSceneDoor : Interactable // 继承你的交互基类
         Destroy(fadeCanvas);
     }
 
-    // 通用的淡入淡出协程（复用RoomTeleporter的逻辑）
+    // 通用的淡入淡出协程
     IEnumerator FadeScreen(UnityEngine.UI.Image overlay, float startAlpha, float endAlpha, float duration)
     {
         float elapsedTime = 0f;
@@ -237,7 +275,7 @@ public class CrossSceneDoor : Interactable // 继承你的交互基类
 
     void OnDrawGizmosSelected()
     {
-        // 绘制传送目标位置（在场景视图中可视化）
+        // 绘制传送目标位置
         Gizmos.color = Color.green;
         Gizmos.DrawWireSphere(targetSpawnPosition, 0.5f);
         Gizmos.DrawLine(transform.position, targetSpawnPosition);

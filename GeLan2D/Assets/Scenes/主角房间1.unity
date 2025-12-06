@@ -273,6 +273,8 @@ MonoBehaviour:
   hasLock: 0
   requiredKeyID: 1001
   lockedHintSprite: {fileID: 0}
+  openSound: {fileID: 8300000, guid: 3231d4d02cd22f14b880140f946b8322, type: 3}
+  lockedSound: {fileID: 0}
   playerTeleporter: {fileID: 1866674914}
 --- !u!61 &148265401
 BoxCollider2D:
